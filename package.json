@@ -1,0 +1,28 @@
+{
+  "name": "momoinvoice",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "nuxt": "^4.1.1",
+    "qrcode": "^1.5.3",
+    "vue": "^3.5.21",
+    "vue-router": "^4.5.1",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@iconify-json/heroicons": "^1.2.2",
+    "@nuxt/fonts": "^0.11.4",
+    "@nuxt/ui": "^3.3.4",
+    "@types/qrcode": "^1.5.5",
+    "@vueuse/nuxt": "^13.9.0"
+  }
+}
