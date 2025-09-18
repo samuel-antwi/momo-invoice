@@ -5,23 +5,41 @@ const props = defineProps<{
   title: string;
   value: string;
   subLabel?: string;
-  accent?: string;
+  icon?: string;
+  accent?: "emerald" | "blue" | "rose" | "amber";
 }>();
 
-const accentStyle = computed(() => (props.accent ? { color: props.accent } : {}));
+const accentConfig = computed(() => {
+  switch (props.accent) {
+    case "emerald":
+      return { color: "text-green-600", bg: "bg-green-50", icon: "💰" };
+    case "blue":
+      return { color: "text-blue-600", bg: "bg-blue-50", icon: "📊" };
+    case "rose":
+      return { color: "text-red-600", bg: "bg-red-50", icon: "⚠️" };
+    case "amber":
+      return { color: "text-amber-600", bg: "bg-amber-50", icon: "👥" };
+    default:
+      return { color: "text-gray-600", bg: "bg-gray-50", icon: "📈" };
+  }
+});
 </script>
 
 <template>
-  <UCard
-    :ui="{
-      body: 'flex flex-col gap-2.5 p-5 sm:p-6',
-      header: 'hidden',
-      footer: 'hidden',
-    }"
-    class="h-full border border-slate-200/80 bg-white/80 shadow-sm shadow-amber-100/40"
-  >
-    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ props.title }}</p>
-    <p class="text-3xl font-semibold" :style="accentStyle">{{ props.value }}</p>
-    <p v-if="props.subLabel" class="text-sm text-slate-500">{{ props.subLabel }}</p>
-  </UCard>
+  <div class="stat-card">
+    <div class="flex items-center justify-between mb-3">
+      <div
+        :class="[
+          'h-8 w-8 rounded-lg flex items-center justify-center text-sm',
+          accentConfig.bg,
+        ]"
+      >
+        <span>{{ props.icon || accentConfig.icon }}</span>
+      </div>
+    </div>
+
+    <div class="stat-value">{{ value }}</div>
+    <div class="stat-label">{{ title }}</div>
+    <div v-if="props.subLabel" class="stat-sublabel">{{ props.subLabel }}</div>
+  </div>
 </template>

@@ -1,82 +1,280 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useSession } from "~/composables/useSession";
 
-const router = useRouter();
-const { profile, login } = useSession();
-
 definePageMeta({ layout: "plain" });
 
-const step = ref<"phone" | "otp" | "success">("phone");
-const phoneNumber = ref(profile.value.whatsappNumber);
-const otpCode = ref("");
-const generatedOtp = ref("123456");
-const message = ref("We will send a 6-digit code via WhatsApp/SMS.");
+const router = useRouter();
+const supabase = useSupabaseClient();
+const user = useSupabaseUser();
+const { refresh } = useSession();
 
-const sendOtp = () => {
-  if (!phoneNumber.value) {
-    message.value = "Enter your phone number first.";
-    return;
-  }
-  generatedOtp.value = "123456";
-  step.value = "otp";
-  message.value = `We sent 123456 to ${phoneNumber.value} (demo mode).`;
+const mode = ref<"signin" | "signup">("signin");
+const email = ref("");
+const password = ref("");
+const confirmPassword = ref("");
+const loading = ref(false);
+const message = ref("");
+
+watch(
+  user,
+  (value) => {
+    if (value) {
+      router.replace("/app/dashboard");
+    }
+  },
+  { immediate: true }
+);
+
+const toggleMode = () => {
+  mode.value = mode.value === "signin" ? "signup" : "signin";
+  message.value = "";
+  email.value = "";
+  password.value = "";
+  confirmPassword.value = "";
 };
 
-const verifyOtp = () => {
-  if (otpCode.value === generatedOtp.value) {
-    login({ phone: phoneNumber.value, whatsappNumber: phoneNumber.value });
-    step.value = "success";
-    setTimeout(() => router.push("/"), 800);
-  } else {
-    message.value = "That code is not quite right. Try 123456 in demo mode.";
+const submit = async () => {
+  if (!email.value || !password.value) {
+    message.value = "Email and password are required.";
+    return;
+  }
+
+  if (mode.value === "signup" && password.value !== confirmPassword.value) {
+    message.value = "Passwords do not match.";
+    return;
+  }
+
+  if (mode.value === "signup" && password.value.length < 8) {
+    message.value = "Password must be at least 8 characters.";
+    return;
+  }
+
+  loading.value = true;
+  message.value = "";
+
+  try {
+    if (mode.value === "signin") {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.value,
+        password: password.value,
+      });
+      if (error) {
+        message.value = error.message;
+        return;
+      }
+      await refresh();
+      const redirectTo =
+        router.currentRoute.value.query.redirect ?? "/app/dashboard";
+      router.replace(redirectTo as string);
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email: email.value,
+        password: password.value,
+      });
+      if (error) {
+        message.value = error.message;
+        return;
+      }
+      message.value =
+        "Check your email to confirm your account and complete signup.";
+    }
+  } catch (error: any) {
+    message.value = error?.message ?? "Something went wrong. Please try again.";
+  } finally {
+    loading.value = false;
   }
 };
 </script>
 
 <template>
-  <div class="grid min-h-screen place-items-center bg-gradient-to-br from-amber-50 via-white to-slate-100 px-4 py-10">
-    <UCard class="w-full max-w-md border border-amber-100/80 bg-white/80 shadow-xl shadow-amber-100/60">
-      <template #header>
-        <div class="space-y-2 text-center">
-          <h1 class="text-2xl font-semibold text-slate-900">MoMoInvoice Login</h1>
-          <p class="text-sm text-slate-500">Phone-first login with email fallback.</p>
-        </div>
-      </template>
-
-      <div class="space-y-4">
-        <UAlert color="primary" variant="soft" icon="i-heroicons-information-circle">
-          {{ message }}
-        </UAlert>
-
-        <form v-if="step === 'phone'" class="space-y-4" @submit.prevent="sendOtp">
-          <UFormGroup label="Mobile number" description="Include country code e.g. 233501234567">
-            <UInput v-model="phoneNumber" placeholder="233501234567" size="lg" />
-          </UFormGroup>
-          <UButton type="submit" color="primary" size="lg" block>Send code</UButton>
-        </form>
-
-        <form v-else-if="step === 'otp'" class="space-y-4" @submit.prevent="verifyOtp">
-          <UFormGroup label="Enter 6-digit code" description="Use 123456 for the demo">
-            <UInput v-model="otpCode" maxlength="6" placeholder="123456" size="lg" />
-          </UFormGroup>
-          <div class="flex flex-col gap-3">
-            <UButton type="submit" color="primary" size="lg" block>Verify</UButton>
-            <UButton color="gray" variant="ghost" size="lg" block @click="step = 'phone'">Change number</UButton>
-          </div>
-        </form>
-
-        <div v-else class="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-700">
-          🎉 You are logged in. Redirecting to the dashboard…
+  <div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center justify-between">
+          <NuxtLink to="/" class="flex items-center gap-3">
+            <div
+              class="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center"
+            >
+              <span class="text-white text-sm font-bold">M</span>
+            </div>
+            <span class="text-xl font-semibold text-gray-900">MoMoInvoice</span>
+          </NuxtLink>
+          <NuxtLink
+            to="/"
+            class="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            ← Back to home
+          </NuxtLink>
         </div>
       </div>
+    </header>
 
-      <template #footer>
-        <p class="text-center text-xs text-slate-500">
-          Need email login instead? Use <span class="font-medium text-amber-600">{{ profile.email }}</span>.
-        </p>
-      </template>
-    </UCard>
+    <!-- Main Content -->
+    <div
+      class="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
+    >
+      <div class="w-full max-w-sm">
+        <!-- Auth Form -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+          <!-- Header -->
+          <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">
+              {{ mode === "signin" ? "Welcome back" : "Create your account" }}
+            </h1>
+            <p class="text-sm text-gray-600">
+              {{
+                mode === "signin"
+                  ? "Sign in to your MoMoInvoice workspace"
+                  : "Start managing your invoices today"
+              }}
+            </p>
+          </div>
+
+          <!-- Alert Message -->
+          <div v-if="message" class="mb-6">
+            <div
+              :class="[
+                'rounded-lg p-4 text-sm',
+                message.includes('Check your email') ||
+                message.includes('confirm')
+                  ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                  : 'bg-red-50 text-red-800 border border-red-200',
+              ]"
+            >
+              {{ message }}
+            </div>
+          </div>
+
+          <!-- Form -->
+          <form @submit.prevent="submit" class="space-y-5">
+            <!-- Email -->
+            <div>
+              <label
+                for="email"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Email address
+              </label>
+              <input
+                id="email"
+                v-model="email"
+                type="email"
+                autocomplete="email"
+                required
+                placeholder="you@company.com"
+                class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+
+            <!-- Password -->
+            <div>
+              <label
+                for="password"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                v-model="password"
+                type="password"
+                autocomplete="current-password"
+                required
+                placeholder="••••••••••••"
+                class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+
+            <!-- Confirm Password (Signup only) -->
+            <div v-if="mode === 'signup'">
+              <label
+                for="confirmPassword"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Confirm password
+              </label>
+              <input
+                id="confirmPassword"
+                v-model="confirmPassword"
+                type="password"
+                autocomplete="new-password"
+                required
+                placeholder="••••••••••••"
+                class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+
+            <!-- Submit Button -->
+            <button
+              type="submit"
+              :disabled="loading"
+              class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <span v-if="loading" class="flex items-center">
+                <svg
+                  class="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                {{
+                  mode === "signin" ? "Signing in..." : "Creating account..."
+                }}
+              </span>
+              <span v-else>
+                {{ mode === "signin" ? "Sign in" : "Create account" }}
+              </span>
+            </button>
+          </form>
+
+          <!-- Toggle Mode -->
+          <div class="mt-6 text-center">
+            <button
+              @click="toggleMode"
+              class="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              {{
+                mode === "signin"
+                  ? "Don't have an account? Sign up"
+                  : "Already have an account? Sign in"
+              }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Security Note -->
+        <div class="mt-8 text-center">
+          <p
+            class="text-xs text-gray-500 flex items-center justify-center gap-1"
+          >
+            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            Secured by Supabase Auth
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

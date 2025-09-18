@@ -2,7 +2,7 @@
 import { computed, ref, watchEffect } from "vue";
 import { useClients } from "~/composables/useClients";
 import { useInvoices } from "~/composables/useInvoices";
-import { formatCurrency, calculateInvoiceTotals } from "~/utils/invoice-helpers";
+import { formatCurrency } from "~/utils/invoice-helpers";
 import type { ClientContact } from "~/types/models";
 
 const { clients } = useClients();
@@ -31,7 +31,10 @@ const filteredClients = computed(() => {
 const clientStats = computed(() =>
   clients.value.map((client) => {
     const relatedInvoices = invoices.value.filter((invoice) => invoice.clientId === client.id);
-    const totalValue = relatedInvoices.reduce((sum, invoice) => sum + calculateInvoiceTotals(invoice).grandTotal, 0);
+    const totalValue = relatedInvoices.reduce((sum, invoice) => {
+      if (typeof invoice.total === "number") return sum + invoice.total;
+      return sum + invoice.lineItems.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0);
+    }, 0);
     const paidCount = relatedInvoices.filter((invoice) => invoice.status === "paid").length;
     return {
       id: client.id,
@@ -50,104 +53,104 @@ const selectClient = (client: ClientContact) => {
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
-    <section class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div class="space-y-1">
-        <h2 class="text-xl font-semibold text-slate-900">Clients</h2>
-        <p class="text-sm text-slate-500">Keep your customer details and contact channels organised.</p>
+  <div class="flex flex-col gap-8">
+    <section class="glass-panel rounded-3xl p-6">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-amber-400">Clients</p>
+          <h2 class="mt-2 text-2xl font-semibold text-slate-900">Build stronger relationships</h2>
+          <p class="text-sm text-slate-500">Centralise contacts, track invoice value, and tailor reminders.</p>
+        </div>
+        <UButton color="primary" icon="i-heroicons-user-plus" size="lg">Add client</UButton>
       </div>
-      <UButton color="primary" icon="i-heroicons-user-plus">Add client</UButton>
+
+      <UInput
+        v-model="searchTerm"
+        icon="i-heroicons-magnifying-glass-20-solid"
+        placeholder="Search clients by name, business or phone"
+        size="lg"
+        class="mt-6 rounded-2xl border border-slate-200/70 bg-white/85"
+      />
     </section>
 
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,1.1fr),minmax(0,1.9fr)]">
-      <UCard :ui="{ body: 'space-y-4 p-5' }" class="border border-slate-200/80 bg-white/80 shadow-sm shadow-slate-100">
-        <UInput
-          v-model="searchTerm"
-          icon="i-heroicons-magnifying-glass-20-solid"
-          placeholder="Search clients"
-          size="lg"
-        />
-
-        <ul class="space-y-2">
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr),minmax(0,1.6fr)]">
+      <div class="glass-panel rounded-3xl p-5">
+        <ul class="space-y-3">
           <li
             v-for="client in filteredClients"
             :key="client.id"
             :class="[
-              'flex items-center justify-between rounded-2xl border px-4 py-3 transition-all',
+              'cursor-pointer rounded-2xl border px-4 py-3 transition-all',
               selectedClient?.id === client.id
-                ? 'border-amber-300 bg-amber-50/80 text-amber-800'
-                : 'border-slate-100 bg-white/80 text-slate-600 hover:border-amber-200 hover:bg-amber-50/50 hover:text-slate-900',
+                ? 'border-amber-300 bg-amber-50/70 text-amber-800 shadow'
+                : 'border-slate-100 bg-white/90 text-slate-600 hover:border-amber-200 hover:bg-amber-50/40 hover:text-slate-900',
             ]"
             @click="selectClient(client)"
           >
-            <div>
-              <p class="text-sm font-semibold">{{ client.fullName }}</p>
-              <p class="text-xs">{{ client.businessName || 'Individual' }}</p>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold">{{ client.fullName }}</p>
+                <p class="text-xs">{{ client.businessName || 'Individual' }}</p>
+              </div>
+              <UBadge color="primary" variant="soft" size="xs">{{ client.momoProvider.toUpperCase() }}</UBadge>
             </div>
-            <UBadge color="primary" variant="soft" size="xs">{{ client.momoProvider.toUpperCase() }}</UBadge>
           </li>
         </ul>
-      </UCard>
+      </div>
 
-      <UCard
-        v-if="selectedClient"
-        :ui="{ body: 'space-y-6 p-6' }"
-        class="border border-slate-200/80 bg-white/80 shadow-sm shadow-slate-100"
-      >
-        <div class="space-y-1">
-          <h3 class="text-lg font-semibold text-slate-900">{{ selectedClient.fullName }}</h3>
-          <p class="text-sm text-slate-500">{{ selectedClient.businessName || 'Individual client' }}</p>
-        </div>
-
-        <div class="grid gap-6 sm:grid-cols-2">
-          <div class="space-y-1">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Phone / WhatsApp</p>
-            <p class="text-sm text-slate-900">{{ selectedClient.whatsappNumber || selectedClient.phone }}</p>
+      <div v-if="selectedClient" class="space-y-6">
+        <div class="glass-panel rounded-3xl p-6">
+          <div class="flex flex-col gap-1">
+            <h3 class="text-xl font-semibold text-slate-900">{{ selectedClient.fullName }}</h3>
+            <p class="text-sm text-slate-500">{{ selectedClient.businessName || 'Individual client' }}</p>
           </div>
-          <div class="space-y-1">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
-            <p class="text-sm text-slate-900">{{ selectedClient.email || 'Not provided' }}</p>
-          </div>
-          <div class="space-y-1">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Preferred MoMo</p>
-            <p class="text-sm text-slate-900">{{ selectedClient.momoProvider.toUpperCase() }}</p>
-          </div>
-          <div class="space-y-1">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</p>
-            <p class="text-sm text-slate-900">{{ selectedClient.notes || '—' }}</p>
+          <div class="mt-6 grid gap-6 md:grid-cols-2">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">WhatsApp</p>
+              <p class="text-sm text-slate-900">{{ selectedClient.whatsappNumber || selectedClient.phone }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Email</p>
+              <p class="text-sm text-slate-900">{{ selectedClient.email || 'Not provided' }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Preferred MoMo</p>
+              <p class="text-sm text-slate-900">{{ selectedClient.momoProvider.toUpperCase() }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</p>
+              <p class="text-sm text-slate-900">{{ selectedClient.notes || '—' }}</p>
+            </div>
           </div>
         </div>
 
-        <div class="grid gap-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 sm:grid-cols-3">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Invoices sent</p>
-            <p class="mt-1 text-xl font-semibold text-slate-900">
-              {{ getClientStats(selectedClient.id)?.totalInvoices || 0 }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Paid</p>
-            <p class="mt-1 text-xl font-semibold text-slate-900">
-              {{ getClientStats(selectedClient.id)?.paidCount || 0 }}
-            </p>
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Total value</p>
-            <p class="mt-1 text-xl font-semibold text-slate-900">
-              {{ formatCurrency(getClientStats(selectedClient.id)?.totalValue || 0, 'GHS') }}
-            </p>
+        <div class="glass-panel rounded-3xl p-6">
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div class="rounded-2xl border border-slate-100 bg-white/80 p-4 text-center">
+              <p class="text-xs text-slate-500">Invoices sent</p>
+              <p class="mt-2 text-2xl font-semibold text-slate-900">
+                {{ getClientStats(selectedClient.id)?.totalInvoices || 0 }}
+              </p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-white/80 p-4 text-center">
+              <p class="text-xs text-slate-500">Paid</p>
+              <p class="mt-2 text-2xl font-semibold text-slate-900">
+                {{ getClientStats(selectedClient.id)?.paidCount || 0 }}
+              </p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-white/80 p-4 text-center">
+              <p class="text-xs text-slate-500">Total value</p>
+              <p class="mt-2 text-2xl font-semibold text-slate-900">
+                {{ formatCurrency(getClientStats(selectedClient.id)?.totalValue || 0, 'GHS') }}
+              </p>
+            </div>
           </div>
         </div>
-      </UCard>
+      </div>
 
-      <UCard
-        v-else
-        :ui="{ body: 'space-y-3 p-6 text-center' }"
-        class="flex min-h-[320px] flex-col items-center justify-center border border-dashed border-slate-200 bg-white/70"
-      >
-        <h3 class="text-lg font-semibold text-slate-900">Select a client</h3>
-        <p class="text-sm text-slate-500">Review contact details, invoice history, and conversation notes.</p>
-      </UCard>
+      <div v-else class="glass-panel flex min-h-[320px] items-center justify-center rounded-3xl p-6 text-center text-sm text-slate-500">
+        Select a client to view contact details, MoMo preferences, and invoice performance.
+      </div>
     </div>
   </div>
 </template>

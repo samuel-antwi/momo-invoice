@@ -5,14 +5,24 @@ import InvoiceStatusPill from "~/components/invoices/InvoiceStatusPill.vue";
 import { useSession } from "~/composables/useSession";
 import { useInvoices } from "~/composables/useInvoices";
 import { useClients } from "~/composables/useClients";
-import { formatCurrency, formatDate, calculateInvoiceTotals } from "~/utils/invoice-helpers";
+import { formatCurrency, formatDate } from "~/utils/invoice-helpers";
 
 const { profile } = useSession();
-const { summary, overdueInvoices, invoicesDueSoon, recentInvoices, invoices } = useInvoices();
+const { summary, overdueInvoices, invoicesDueSoon, recentInvoices, invoices } =
+  useInvoices();
 const { clients, clientsByProvider } = useClients();
 
-const totalClients = computed(() => (clients.value.length === 0 ? 1 : clients.value.length));
-const providerBreakdown = computed(() => clientsByProvider.value);
+const totalClients = computed(() => {
+  const clientsArray = clients.value || [];
+  return clientsArray.length === 0 ? 1 : clientsArray.length;
+});
+
+// Safe computed properties for arrays
+const safeOverdueInvoices = computed(() => overdueInvoices.value || []);
+const safeInvoicesDueSoon = computed(() => invoicesDueSoon.value || []);
+const safeRecentInvoices = computed(() => recentInvoices.value || []);
+
+const providerBreakdown = clientsByProvider;
 
 const providerLabel = (provider: string) => {
   switch (provider) {
@@ -27,155 +37,278 @@ const providerLabel = (provider: string) => {
   }
 };
 
-const clientName = (id: string) => clients.value.find((client) => client.id === id)?.fullName ?? "Unknown";
+const clientName = (id: string) => {
+  const invoicesArray = invoices.value || [];
+  const clientsArray = clients.value || [];
+
+  const inline = invoicesArray.find((invoice) => invoice.clientId === id);
+  if (inline?.clientName) return inline.clientName;
+
+  return clientsArray.find((client) => client.id === id)?.fullName ?? "Unknown";
+};
 
 const invoiceTotal = (invoiceId: string) => {
-  const source = invoices.value.find((invoice) => invoice.id === invoiceId);
+  const invoicesArray = invoices.value || [];
+  const source = invoicesArray.find((invoice) => invoice.id === invoiceId);
   if (!source) return 0;
-  return calculateInvoiceTotals(source).grandTotal;
+  if (typeof source.total === "number") return source.total;
+  return (
+    source.lineItems?.reduce(
+      (sum, item) => sum + item.quantity * item.unitPrice,
+      0
+    ) || 0
+  );
 };
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-6xl flex-col gap-8">
-    <section class="space-y-4">
-      <h2 class="text-lg font-semibold text-slate-900">Today at a glance</h2>
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <StatCard
-          title="Revenue received"
-          :value="formatCurrency(summary.totalRevenue, profile.currency)"
-          sub-label="Paid invoices this month"
-          accent="#16a34a"
-        />
-        <StatCard
-          title="Outstanding"
-          :value="formatCurrency(summary.outstanding, profile.currency)"
-          :sub-label="`${summary.pendingCount} invoices awaiting payment`"
-          accent="#1d4ed8"
-        />
-        <StatCard
-          title="Overdue"
-          :value="formatCurrency(summary.overdueTotal, profile.currency)"
-          :sub-label="`${summary.overdueCount} need urgent follow-up`"
-          accent="#b91c1c"
-        />
+  <div class="space-y-8">
+    <!-- Stats Grid -->
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        title="Revenue received"
+        :value="formatCurrency(summary.totalRevenue, profile.currency)"
+        sub-label="Paid invoices this month"
+        accent="emerald"
+      />
+      <StatCard
+        title="Outstanding"
+        :value="formatCurrency(summary.outstanding, profile.currency)"
+        :sub-label="`${summary.pendingCount} invoices awaiting payment`"
+        accent="blue"
+      />
+      <StatCard
+        title="Overdue invoices"
+        :value="formatCurrency(summary.overdueTotal, profile.currency)"
+        :sub-label="`${summary.overdueCount} require follow-up`"
+        accent="rose"
+      />
+      <StatCard
+        title="Active clients"
+        :value="(clients.value || []).length.toString()"
+        sub-label="Contacts receiving invoices"
+        accent="amber"
+      />
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- Attention Required Section -->
+      <div class="card">
+        <div class="card-header">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">
+                Invoices that need attention
+              </h3>
+              <p class="text-sm text-gray-600 mt-1">
+                Overdue follow-ups and payments due in the next three days.
+              </p>
+            </div>
+            <UButton
+              to="/app/invoices"
+              class="btn-primary"
+              icon="i-heroicons-arrow-top-right-on-square"
+              size="sm"
+            >
+              View all
+            </UButton>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="grid gap-6 md:grid-cols-2">
+            <!-- Overdue Section -->
+            <div>
+              <h4 class="text-sm font-semibold text-red-600 mb-3">Overdue</h4>
+
+              <div v-if="safeOverdueInvoices.length" class="space-y-3">
+                <div
+                  v-for="invoice in safeOverdueInvoices"
+                  :key="invoice.id"
+                  class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div class="flex items-center justify-between mb-2">
+                    <div>
+                      <p class="text-sm font-semibold text-gray-900">
+                        {{ invoice.invoiceNumber }}
+                      </p>
+                      <p class="text-xs text-red-600">
+                        Due {{ formatDate(invoice.dueDate) }} •
+                        {{ invoice.daysOverdue }} days overdue
+                      </p>
+                    </div>
+                    <InvoiceStatusPill :status="invoice.status" />
+                  </div>
+
+                  <div class="flex gap-2 mt-3">
+                    <UButton
+                      :to="`/app/invoices/${invoice.id}`"
+                      size="xs"
+                      variant="outline"
+                      class="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      Send reminder
+                    </UButton>
+                    <UButton
+                      :to="`/app/invoices/${invoice.id}`"
+                      size="xs"
+                      variant="ghost"
+                    >
+                      Mark paid
+                    </UButton>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="text-center py-8 text-gray-500">
+                <p class="text-sm">No overdue invoices</p>
+              </div>
+            </div>
+
+            <!-- Due Soon Section -->
+            <div>
+              <h4 class="text-sm font-semibold text-amber-600 mb-3">
+                Due in 3 days
+              </h4>
+
+              <div v-if="safeInvoicesDueSoon.length" class="space-y-3">
+                <div
+                  v-for="invoice in safeInvoicesDueSoon"
+                  :key="`soon_${invoice.id}`"
+                  class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-sm font-semibold text-gray-900">
+                        {{ invoice.invoiceNumber }}
+                      </p>
+                      <p class="text-xs text-amber-600">
+                        Due {{ formatDate(invoice.dueDate) }} • in
+                        {{ invoice.daysUntilDue }} days
+                      </p>
+                    </div>
+                    <UButton
+                      :to="`/app/invoices/${invoice.id}`"
+                      size="xs"
+                      class="btn-secondary"
+                    >
+                      Prep reminder
+                    </UButton>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="text-center py-8 text-gray-500">
+                <p class="text-sm">Nothing due soon</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
 
-    <section class="grid gap-4 lg:grid-cols-[minmax(0,2fr),minmax(0,1fr)]">
-      <UCard
-        :ui="{ body: 'space-y-5 p-6' }"
-        class="border border-slate-200/80 bg-white/80 shadow-sm shadow-slate-100"
-      >
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <!-- Mobile Money Mix Section -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-lg font-semibold text-gray-900">Mobile Money mix</h3>
+          <p class="text-sm text-gray-600 mt-1">
+            Understand how clients prefer to pay.
+          </p>
+        </div>
+
+        <div class="card-body">
+          <div class="space-y-4">
+            <div
+              v-for="(count, provider) in providerBreakdown"
+              :key="provider"
+              class="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+            >
+              <div>
+                <p class="text-sm font-semibold text-gray-900">
+                  {{ providerLabel(provider) }}
+                </p>
+                <p class="text-xs text-gray-500">
+                  {{ count }} client{{ count === 1 ? "" : "s" }}
+                </p>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-sm font-semibold text-gray-700"
+                  >{{ Math.round((count / totalClients) * 100) }}%</span
+                >
+                <div class="h-2 w-16 overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    class="h-full rounded-full bg-blue-600"
+                    :style="{
+                      width: `${Math.round((count / totalClients) * 100)}%`,
+                    }"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p class="text-sm text-blue-800">
+              <span class="font-semibold">Pro tip:</span> Clients paying via MTN
+              settle invoices 36% faster. Prioritise MoMo payment links in
+              reminders.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity Section -->
+    <div class="card">
+      <div class="card-header">
+        <div class="flex items-center justify-between">
           <div>
-            <h3 class="text-base font-semibold text-slate-900">Invoices needing attention</h3>
-            <p class="text-sm text-slate-500">Follow up on overdue and due-soon invoices.</p>
+            <h3 class="text-lg font-semibold text-gray-900">Recent activity</h3>
+            <p class="text-sm text-gray-600 mt-1">
+              Latest invoices and their status across the workspace.
+            </p>
           </div>
-          <UButton to="/app/invoices" color="gray" variant="soft">View all</UButton>
-        </div>
-
-        <div v-if="overdueInvoices.length" class="space-y-3">
-          <div
-            v-for="invoice in overdueInvoices"
-            :key="invoice.id"
-            class="flex items-center justify-between gap-4 rounded-2xl border border-red-100 bg-red-50/60 px-4 py-3"
+          <UButton
+            to="/app/invoices"
+            class="btn-primary"
+            icon="i-heroicons-arrow-top-right-on-square"
           >
-            <div>
-              <p class="text-sm font-semibold text-red-700">{{ invoice.invoiceNumber }}</p>
-              <p class="text-xs text-red-600">
-                Due {{ formatDate(invoice.dueDate) }} • {{ invoice.daysOverdue }} days overdue
-              </p>
-            </div>
-            <InvoiceStatusPill :status="invoice.status" />
-          </div>
+            View all invoices
+          </UButton>
         </div>
-        <p v-else class="rounded-2xl border border-emerald-100 bg-emerald-50/60 px-4 py-3 text-sm text-emerald-600">
-          No overdue invoices. Great job! 🎉
-        </p>
+      </div>
 
-        <div v-if="invoicesDueSoon.length" class="space-y-3">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Due in next 3 days</p>
-          <div
-            v-for="invoice in invoicesDueSoon"
-            :key="`soon_${invoice.id}`"
-            class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm"
-          >
-            <div>
-              <p class="text-sm font-semibold text-slate-900">{{ invoice.invoiceNumber }}</p>
-              <p class="text-xs text-slate-500">
-                Due {{ formatDate(invoice.dueDate) }} • in {{ invoice.daysUntilDue }} days
-              </p>
-            </div>
-            <UButton :to="`/app/invoices/${invoice.id}`" color="gray" variant="ghost" size="sm">Remind</UButton>
-          </div>
-        </div>
-      </UCard>
-
-      <UCard :ui="{ body: 'space-y-4 p-6' }" class="border border-slate-200/80 bg-white/80 shadow-sm shadow-slate-100">
-        <div>
-          <h3 class="text-base font-semibold text-slate-900">Mobile Money mix</h3>
-          <p class="text-sm text-slate-500">See which providers your clients prefer.</p>
-        </div>
-        <ul class="space-y-3">
-          <li
-            v-for="(count, provider) in providerBreakdown"
-            :key="provider"
-            class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-3"
-          >
-            <div>
-              <p class="text-sm font-semibold text-slate-900">{{ providerLabel(provider) }}</p>
-              <p class="text-xs text-slate-500">{{ count }} client{{ count === 1 ? '' : 's' }}</p>
-            </div>
-            <span class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-              {{ Math.round((count / totalClients) * 100) }}%
-            </span>
-          </li>
-        </ul>
-      </UCard>
-    </section>
-
-    <section>
-      <UCard :ui="{ body: 'space-y-5 p-6' }" class="border border-slate-200/80 bg-white/80 shadow-sm shadow-slate-100">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 class="text-base font-semibold text-slate-900">Recent invoices</h3>
-            <p class="text-sm text-slate-500">Keep tabs on the most recent activity.</p>
-          </div>
-          <UButton to="/app/invoices" color="gray" variant="soft">Go to invoices</UButton>
-        </div>
-
-        <div class="overflow-hidden rounded-2xl border border-slate-100">
-          <table class="min-w-full divide-y divide-slate-100 text-sm">
-            <thead class="bg-slate-50/60 text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th class="px-4 py-3 text-left font-semibold">Invoice</th>
-                <th class="px-4 py-3 text-left font-semibold">Client</th>
-                <th class="px-4 py-3 text-left font-semibold">Amount</th>
-                <th class="px-4 py-3 text-left font-semibold">Status</th>
-                <th class="px-4 py-3 text-left font-semibold">Due date</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 bg-white/60">
-              <tr v-for="invoice in recentInvoices" :key="invoice.id" class="hover:bg-slate-50/80">
-                <td class="px-4 py-3 font-medium text-slate-900">
-                  <NuxtLink :to="`/app/invoices/${invoice.id}`" class="text-amber-600 hover:text-amber-700">
-                    {{ invoice.invoiceNumber }}
-                  </NuxtLink>
-                </td>
-                <td class="px-4 py-3 text-slate-600">{{ clientName(invoice.clientId) }}</td>
-                <td class="px-4 py-3 text-slate-900">
-                  {{ formatCurrency(invoiceTotal(invoice.id), profile.currency) }}
-                </td>
-                <td class="px-4 py-3">
-                  <InvoiceStatusPill :status="invoice.status" />
-                </td>
-                <td class="px-4 py-3 text-slate-600">{{ formatDate(invoice.dueDate) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </UCard>
-    </section>
+      <div class="overflow-hidden">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Client</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Due date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="invoice in safeRecentInvoices" :key="invoice.id">
+              <td>
+                <NuxtLink
+                  :to="`/app/invoices/${invoice.id}`"
+                  class="text-blue-600 hover:text-blue-700 font-semibold"
+                >
+                  {{ invoice.invoiceNumber }}
+                </NuxtLink>
+              </td>
+              <td class="text-gray-900">{{ clientName(invoice.clientId) }}</td>
+              <td class="font-semibold text-gray-900">
+                {{ formatCurrency(invoiceTotal(invoice.id), profile.currency) }}
+              </td>
+              <td><InvoiceStatusPill :status="invoice.status" /></td>
+              <td class="text-gray-600">{{ formatDate(invoice.dueDate) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>

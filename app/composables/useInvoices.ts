@@ -1,16 +1,70 @@
-import { computed } from "vue";
-import { demoData } from "~/utils/demo-data";
-import { calculateInvoiceTotals } from "~/utils/invoice-helpers";
+import { computed, watch, watchEffect } from "vue";
 import type { DashboardSummary, InvoiceRecord, InvoiceStatus } from "~/types/models";
 
-const cloneInvoices = (items: InvoiceRecord[]): InvoiceRecord[] => items.map((invoice) => ({ ...invoice }));
-
-const daysBetween = (start: Date, end: Date) => Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-
-const calculateTotals = (invoice: InvoiceRecord) => calculateInvoiceTotals(invoice).grandTotal;
+const defaultSummary = (): DashboardSummary => ({
+  totalRevenue: 0,
+  outstanding: 0,
+  overdueTotal: 0,
+  draftCount: 0,
+  sentCount: 0,
+  paidCount: 0,
+  overdueCount: 0,
+  pendingCount: 0,
+});
 
 export const useInvoices = () => {
-  const invoices = useState<InvoiceRecord[]>("invoices", () => cloneInvoices(demoData.invoices));
+  const invoices = useState<InvoiceRecord[]>("invoices", () => []);
+  const summary = useState<DashboardSummary>("invoice-summary", defaultSummary);
+  const overdueInvoices = useState<InvoiceRecord[]>("invoice-overdue", () => []);
+  const invoicesDueSoon = useState<InvoiceRecord[]>("invoice-due-soon", () => []);
+  const recentInvoices = useState<InvoiceRecord[]>("invoice-recent", () => []);
+  const user = useSupabaseUser();
+
+  const { data, pending, refresh } = useAsyncData(
+    "invoices",
+    () =>
+      $fetch<{
+        invoices: InvoiceRecord[];
+        summary: DashboardSummary;
+        overdueInvoices: InvoiceRecord[];
+        invoicesDueSoon: InvoiceRecord[];
+        recentInvoices: InvoiceRecord[];
+      }>("/api/invoices"),
+    { server: false },
+  );
+
+  watchEffect(() => {
+    if (data.value) {
+      invoices.value = data.value.invoices;
+      summary.value = data.value.summary;
+      overdueInvoices.value = data.value.overdueInvoices;
+      invoicesDueSoon.value = data.value.invoicesDueSoon;
+      recentInvoices.value = data.value.recentInvoices;
+    } else if (!user.value) {
+      invoices.value = [];
+      summary.value = defaultSummary();
+      overdueInvoices.value = [];
+      invoicesDueSoon.value = [];
+      recentInvoices.value = [];
+    }
+  });
+
+  watch(
+    user,
+    (current, previous) => {
+      if (current?.id !== previous?.id && current) {
+        refresh();
+      }
+      if (!current) {
+        invoices.value = [];
+        summary.value = defaultSummary();
+        overdueInvoices.value = [];
+        invoicesDueSoon.value = [];
+        recentInvoices.value = [];
+      }
+    },
+    { immediate: false },
+  );
 
   const setStatus = (id: string, status: InvoiceStatus) => {
     invoices.value = invoices.value.map((invoice) => (invoice.id === id ? { ...invoice, status } : invoice));
@@ -34,90 +88,14 @@ export const useInvoices = () => {
     invoices.value = invoices.value.filter((invoice) => invoice.id !== id);
   };
 
-  const summary = computed<DashboardSummary>(() => {
-    const now = new Date();
-    let totalRevenue = 0;
-    let outstanding = 0;
-    let overdueTotal = 0;
-    let draftCount = 0;
-    let sentCount = 0;
-    let paidCount = 0;
-    let overdueCount = 0;
-
-    invoices.value.forEach((invoice) => {
-      const grandTotal = calculateTotals(invoice);
-      switch (invoice.status) {
-        case "paid":
-          paidCount += 1;
-          totalRevenue += grandTotal;
-          break;
-        case "sent":
-          sentCount += 1;
-          outstanding += grandTotal;
-          if (new Date(invoice.dueDate) < now) {
-            overdueCount += 1;
-            overdueTotal += grandTotal;
-          }
-          break;
-        case "overdue":
-          overdueCount += 1;
-          overdueTotal += grandTotal;
-          outstanding += grandTotal;
-          break;
-        default:
-          draftCount += 1;
-      }
-    });
-
-    return {
-      totalRevenue,
-      outstanding,
-      overdueTotal,
-      draftCount,
-      sentCount,
-      paidCount,
-      overdueCount,
-      pendingCount: sentCount + overdueCount,
-    };
-  });
-
-  const invoicesDueSoon = computed(() => {
-    const now = new Date();
-    return invoices.value
-      .filter((invoice) => invoice.status === "sent")
-      .map((invoice) => {
-        const dueDate = new Date(invoice.dueDate);
-        return {
-          ...invoice,
-          daysUntilDue: daysBetween(now, dueDate),
-        };
-      })
-      .filter((invoice) => invoice.daysUntilDue >= 0 && invoice.daysUntilDue <= 3)
-      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
-  });
-
-  const overdueInvoices = computed(() =>
-    invoices.value
-      .filter((invoice) => invoice.status === "overdue" || new Date(invoice.dueDate) < new Date())
-      .map((invoice) => ({
-        ...invoice,
-        daysOverdue: Math.max(0, daysBetween(new Date(invoice.dueDate), new Date())),
-      }))
-      .sort((a, b) => b.daysOverdue - a.daysOverdue),
-  );
-
-  const recentInvoices = computed(() =>
-    [...invoices.value]
-      .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
-      .slice(0, 5),
-  );
-
   return {
     invoices,
-    summary,
-    overdueInvoices,
-    invoicesDueSoon,
-    recentInvoices,
+    summary: computed(() => summary.value),
+    overdueInvoices: computed(() => overdueInvoices.value),
+    invoicesDueSoon: computed(() => invoicesDueSoon.value),
+    recentInvoices: computed(() => recentInvoices.value),
+    pending,
+    refresh,
     addInvoice,
     updateInvoice,
     removeInvoice,

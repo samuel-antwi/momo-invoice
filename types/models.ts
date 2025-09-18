@@ -3,6 +3,7 @@ export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
 export interface BusinessProfile {
   id: string;
   name: string;
+  slug?: string;
   email: string;
   phone: string;
   whatsappNumber: string;
@@ -47,7 +48,7 @@ export interface InvoiceRecord {
   businessId: string;
   clientId: string;
   issueDate: string;
-  dueDate: string;
+  dueDate?: string;
   status: InvoiceStatus;
   invoiceNumber: string;
   lineItems: InvoiceLineItem[];
@@ -56,6 +57,13 @@ export interface InvoiceRecord {
   reminders: InvoiceReminder[];
   lastSharedAt?: string;
   paidAt?: string;
+  subtotal?: number;
+  taxTotal?: number;
+  discountTotal?: number;
+  total?: number;
+  clientName?: string;
+  daysUntilDue?: number;
+  daysOverdue?: number;
 }
 
 export interface DashboardSummary {

@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useInvoices } from "~/composables/useInvoices";
+import { useSession } from "~/composables/useSession";
 import type { ReminderTemplateSetting } from "~/types/models";
-import { demoData } from "~/utils/demo-data";
 
 const { invoices, overdueInvoices, invoicesDueSoon } = useInvoices();
+const { reminderTemplates } = useSession();
 
-const templates = ref<ReminderTemplateSetting[]>([...demoData.reminderTemplateSettings]);
+const templates = ref<ReminderTemplateSetting[]>([]);
+
+watch(
+  reminderTemplates,
+  (value) => {
+    templates.value = value.length ? [...value] : [];
+  },
+  { immediate: true },
+);
 
 const reminderQueue = computed(() => {
   const upcoming = invoicesDueSoon.value.map((invoice) => ({
@@ -36,78 +45,84 @@ const invoiceNumber = (id: string) => invoices.value.find((invoice) => invoice.i
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
-    <section class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div class="space-y-1">
-        <h2 class="text-xl font-semibold text-slate-900">Reminders</h2>
-        <p class="text-sm text-slate-500">Automate polite nudges across WhatsApp, SMS, and email.</p>
+  <div class="flex flex-col gap-8">
+    <section class="glass-panel rounded-3xl p-6">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[0.35em] text-amber-400">Reminders</p>
+          <h2 class="mt-2 text-2xl font-semibold text-slate-900">Never chase payments manually again</h2>
+          <p class="text-sm text-slate-500">Design automated WhatsApp, SMS, and email nudges for each invoice timeline.</p>
+        </div>
+        <UButton color="primary" icon="i-heroicons-bell-alert" size="lg">Add template</UButton>
       </div>
-      <UButton color="primary" icon="i-heroicons-bell-alert">New template</UButton>
     </section>
 
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,1.3fr),minmax(0,1fr)]">
-      <UCard :ui="{ body: 'space-y-5 p-6' }" class="border border-slate-200/80 bg-white/80 shadow-sm shadow-slate-100">
-        <h3 class="text-base font-semibold text-slate-900">Reminder schedule</h3>
-        <ul class="space-y-3">
+    <div class="grid gap-6 xl:grid-cols-[1.4fr,1fr]">
+      <div class="glass-panel rounded-3xl p-6">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Reminder playbooks</h3>
+        <p class="mt-1 text-sm text-slate-500">Turn on/off reminder touchpoints per invoice category.</p>
+        <ul class="mt-6 space-y-4">
           <li
             v-for="template in templates"
             :key="template.id"
-            class="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50/60 px-4 py-3"
+            class="rounded-2xl border border-slate-100 bg-white/90 px-4 py-4 shadow-sm"
           >
-            <div>
-              <p class="text-sm font-semibold text-slate-900">{{ template.label }}</p>
-              <p class="text-xs text-slate-500">
-                {{ template.offsetDays === 0
-                  ? 'On due day'
-                  : template.offsetDays > 0
-                    ? `${template.offsetDays} days after due`
-                    : `${Math.abs(template.offsetDays)} days before due` }}
-                • {{ template.channel.toUpperCase() }}
-              </p>
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-slate-900">{{ template.label }}</p>
+                <p class="text-xs text-slate-500">
+                  {{ template.offsetDays === 0
+                    ? 'On due day'
+                    : template.offsetDays > 0
+                      ? `${template.offsetDays} days after due`
+                      : `${Math.abs(template.offsetDays)} days before due` }}
+                  • {{ template.channel.toUpperCase() }}
+                </p>
+              </div>
+              <UToggle :model-value="template.enabled" @update:model-value="() => toggleTemplate(template.id)" />
             </div>
-            <UToggle :model-value="template.enabled" @update:model-value="() => toggleTemplate(template.id)" />
           </li>
         </ul>
-      </UCard>
+      </div>
 
-      <UCard :ui="{ body: 'space-y-4 p-6' }" class="border border-slate-200/80 bg-white/80 shadow-sm shadow-slate-100">
-        <div>
-          <h3 class="text-base font-semibold text-slate-900">Upcoming reminders</h3>
-          <p class="text-sm text-slate-500">These will send automatically once backend integrations are live.</p>
-        </div>
-        <ul class="space-y-3">
+      <div class="glass-panel rounded-3xl p-6">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Upcoming reminders</h3>
+        <p class="mt-1 text-sm text-slate-500">These will trigger automatically once integrations are live.</p>
+        <ul class="mt-6 space-y-4">
           <li
             v-for="item in reminderQueue"
             :key="item.invoiceId"
-            class="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50/60 px-4 py-3"
+            class="rounded-2xl border border-slate-100 bg-white/90 px-4 py-3 shadow-sm"
           >
-            <div>
-              <p class="text-sm font-semibold text-slate-900">Invoice {{ invoiceNumber(item.invoiceId) }}</p>
-              <p class="text-xs text-slate-500">
-                {{ new Date(item.scheduledFor).toLocaleString() }} • {{ item.channel.toUpperCase() }}
-              </p>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-semibold text-slate-900">Invoice {{ invoiceNumber(item.invoiceId) }}</p>
+                <p class="text-xs text-slate-500">
+                  {{ new Date(item.scheduledFor).toLocaleString() }} • {{ item.channel.toUpperCase() }}
+                </p>
+              </div>
+              <UBadge color="primary" variant="soft">{{ item.status }}</UBadge>
             </div>
-            <UBadge color="primary" variant="soft">{{ item.status }}</UBadge>
           </li>
         </ul>
-        <p v-if="!reminderQueue.length" class="rounded-2xl border border-slate-100 bg-white/70 px-4 py-3 text-sm text-slate-500">
-          No reminders scheduled right now.
+        <p v-if="!reminderQueue.length" class="mt-6 rounded-2xl border border-slate-100 bg-white/90 px-4 py-4 text-sm text-slate-500">
+          No reminders queued yet. Configure a template above to start automation.
         </p>
-      </UCard>
+      </div>
     </div>
 
-    <UCard :ui="{ body: 'space-y-4 p-6' }" class="border border-slate-200/80 bg-white/80 shadow-sm shadow-slate-100">
-      <h3 class="text-base font-semibold text-slate-900">How reminders work</h3>
-      <ol class="list-decimal space-y-2 pl-4 text-sm text-slate-600">
-        <li>Invoices move into the reminder queue when they are due soon or overdue.</li>
-        <li>We send a WhatsApp template first, then SMS via Africa's Talking if unpaid.</li>
-        <li>Email is used as a backup for clients without WhatsApp/SMS availability.</li>
-        <li>All actions are logged inside the invoice history.</li>
+    <section class="glass-panel rounded-3xl p-6">
+      <h3 class="text-lg font-semibold text-slate-900">How automated reminders keep cashflow healthy</h3>
+      <ol class="mt-3 list-decimal space-y-2 pl-4 text-sm text-slate-600">
+        <li>Invoice hits the "sent" state and automatically picks the right reminder playbook.</li>
+        <li>WhatsApp nudges go out with local tone. SMS via Africa's Talking kicks in on due day.</li>
+        <li>If unpaid after 48h, an email containing MoMo payment instructions follows up.</li>
+        <li>All reminder events log inside the invoice history with timestamps and outcomes.</li>
       </ol>
-      <p class="text-sm text-slate-500">
-        In this dummy environment, reminders are simulated. Once Supabase hooks are ready we will trigger real messages
-        and track delivery receipts.
+      <p class="mt-4 text-sm text-slate-500">
+        We’re shipping webhook-driven automation with Supabase next, so these schedules will fire in production with
+        delivery receipts and retries.
       </p>
-    </UCard>
+    </section>
   </div>
 </template>

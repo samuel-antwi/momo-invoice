@@ -3,22 +3,24 @@ import { computed } from "vue";
 
 const props = defineProps<{ status: "draft" | "sent" | "paid" | "overdue" }>();
 
-const label = computed(() => props.status.charAt(0).toUpperCase() + props.status.slice(1));
+const label = computed(
+  () => props.status.charAt(0).toUpperCase() + props.status.slice(1)
+);
 
-const color = computed(() => {
+const badgeClass = computed(() => {
   switch (props.status) {
     case "paid":
-      return "emerald";
+      return "badge badge-success";
     case "sent":
-      return "blue";
+      return "badge badge-warning";
     case "overdue":
-      return "red";
+      return "badge badge-danger";
     default:
-      return "slate";
+      return "badge badge-gray";
   }
 });
 </script>
 
 <template>
-  <UBadge :color="color" size="sm" variant="soft">{{ label }}</UBadge>
+  <span :class="badgeClass">{{ label }}</span>
 </template>

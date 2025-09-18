@@ -1,25 +1,40 @@
-import { computed } from "vue";
-import { demoData } from "~/utils/demo-data";
+import { computed, watch, watchEffect } from "vue";
 import type { ClientContact } from "~/types/models";
 
-const cloneClients = (clients: ClientContact[]): ClientContact[] => clients.map((client) => ({ ...client }));
-
 export const useClients = () => {
-  const clients = useState<ClientContact[]>("clients", () => cloneClients(demoData.clients));
+  const clients = useState<ClientContact[]>("clients", () => []);
+  const breakdown = useState<Record<string, number>>("clients-breakdown", () => ({}));
+  const user = useSupabaseUser();
+
+  const { data, pending, refresh } = useAsyncData("clients", () =>
+    $fetch<{ clients: ClientContact[]; breakdown: Record<string, number> }>("/api/clients"),
+  );
+
+  watchEffect(() => {
+    if (data.value) {
+      clients.value = data.value.clients;
+      breakdown.value = data.value.breakdown;
+    } else if (!user.value) {
+      clients.value = [];
+      breakdown.value = {};
+    }
+  });
+
+  watch(
+    user,
+    (current, previous) => {
+      if (current?.id !== previous?.id && current) {
+        refresh();
+      }
+      if (!current) {
+        clients.value = [];
+        breakdown.value = {};
+      }
+    },
+    { immediate: false },
+  );
 
   const getClientById = (id: string) => clients.value.find((client) => client.id === id);
-
-  const addClient = (payload: ClientContact) => {
-    clients.value = [...clients.value, payload];
-  };
-
-  const updateClient = (id: string, patch: Partial<ClientContact>) => {
-    clients.value = clients.value.map((client) => (client.id === id ? { ...client, ...patch } : client));
-  };
-
-  const removeClient = (id: string) => {
-    clients.value = clients.value.filter((client) => client.id !== id);
-  };
 
   const searchClients = computed(() => (term: string) => {
     const query = term.trim().toLowerCase();
@@ -30,18 +45,12 @@ export const useClients = () => {
     });
   });
 
-  const clientsByProvider = computed(() => {
-    return clients.value.reduce<Record<string, number>>((acc, client) => {
-      acc[client.momoProvider] = (acc[client.momoProvider] ?? 0) + 1;
-      return acc;
-    }, {});
-  });
+  const clientsByProvider = computed(() => breakdown.value);
 
   return {
     clients,
-    addClient,
-    updateClient,
-    removeClient,
+    pending,
+    refresh,
     getClientById,
     searchClients,
     clientsByProvider,

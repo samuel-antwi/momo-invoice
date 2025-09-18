@@ -4,106 +4,153 @@ import { useRoute } from "vue-router";
 import { useSession } from "~/composables/useSession";
 
 const route = useRoute();
-const { profile } = useSession();
+const { profile, logout } = useSession();
 
 const navigation = [
-  { label: "Dashboard", to: "/app/dashboard", icon: "📊" },
-  { label: "Invoices", to: "/app/invoices", icon: "🧾" },
-  { label: "Clients", to: "/app/clients", icon: "👥" },
-  { label: "Reminders", to: "/app/reminders", icon: "⏰" },
-  { label: "Settings", to: "/app/settings", icon: "⚙️" },
+  { label: "Dashboard", to: "/app/dashboard", icon: "i-heroicons-home-modern" },
+  { label: "Invoices", to: "/app/invoices", icon: "i-heroicons-document-text" },
+  { label: "Clients", to: "/app/clients", icon: "i-heroicons-users" },
+  { label: "Reminders", to: "/app/reminders", icon: "i-heroicons-bell-alert" },
 ];
 
 const activePath = computed(() => route.path);
-const activeNavLabel = computed(() => {
-  const current = navigation.find((item) => activePath.value.startsWith(item.to));
-  return current?.label ?? "MoMoInvoice";
-});
+const activeNavLabel = computed(
+  () =>
+    navigation.find((item) => activePath.value.startsWith(item.to))?.label ?? ""
+);
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-slate-50 text-slate-900">
-    <aside
-      class="hidden min-h-screen w-72 flex-col border-r border-slate-200 bg-white/90 px-6 py-8 shadow-sm backdrop-blur lg:flex"
-    >
-      <div class="mb-8 flex items-center gap-3">
-        <div class="grid h-12 w-12 place-items-center rounded-2xl bg-amber-100 text-2xl">
-          💡
+  <div class="flex min-h-screen bg-gray-50">
+    <!-- Sidebar -->
+    <aside class="sidebar hidden w-64 flex-shrink-0 lg:flex">
+      <div class="flex flex-col w-full">
+        <!-- Logo/Brand -->
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center gap-3">
+            <div
+              class="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center"
+            >
+              <span class="text-white text-sm font-bold">M</span>
+            </div>
+            <div>
+              <h1 class="text-lg font-semibold text-gray-900">MoMoInvoice</h1>
+              <p class="text-xs text-gray-500">{{ profile.plan }} plan</p>
+            </div>
+          </div>
         </div>
-        <div class="space-y-1">
-          <p class="text-sm font-medium text-slate-500">{{ profile.plan.toUpperCase() }} PLAN</p>
-          <p class="text-lg font-semibold text-slate-900">{{ profile.name }}</p>
+
+        <!-- Navigation -->
+        <nav class="flex-1 p-4">
+          <div class="space-y-1">
+            <NuxtLink
+              v-for="item in navigation"
+              :key="item.to"
+              :to="item.to"
+              :class="[
+                'nav-link',
+                activePath.startsWith(item.to) ? 'active' : '',
+              ]"
+            >
+              <UIcon :name="item.icon" class="h-5 w-5 mr-3" />
+              <span>{{ item.label }}</span>
+            </NuxtLink>
+          </div>
+        </nav>
+
+        <!-- Help Section -->
+        <div class="p-4 border-t border-gray-200">
+          <div class="card p-4">
+            <h3 class="text-sm font-semibold text-gray-900 mb-2">Need help?</h3>
+            <p class="text-xs text-gray-600 mb-3">
+              Book a 15 minute onboarding call and we'll migrate your first
+              invoices for free.
+            </p>
+            <UButton
+              to="mailto:hello@momoinvoice.com"
+              class="btn-primary w-full"
+              size="sm"
+            >
+              Contact Support
+            </UButton>
+          </div>
         </div>
       </div>
+    </aside>
 
-      <nav class="flex flex-1 flex-col gap-1 text-sm">
+    <!-- Main content -->
+    <div class="main-content flex-1">
+      <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 px-6 py-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="text-2xl font-semibold text-gray-900">
+                {{ activeNavLabel }}
+              </h1>
+              <p class="text-sm text-gray-600 mt-1">{{ profile.address }}</p>
+            </div>
+            <UButton
+              variant="ghost"
+              size="sm"
+              class="flex items-center gap-3"
+            >
+              <UDropdown
+                :items="[
+                  [{ label: 'Settings', icon: 'i-heroicons-cog-6-tooth', to: '/app/settings' }],
+                  [{ label: 'Log out', icon: 'i-heroicons-arrow-right-start-on-rectangle', click: logout }],
+                ]"
+                :popper="{ placement: 'bottom-end' }"
+              >
+                <template #default>
+                  <div class="flex items-center gap-3">
+                    <UAvatar
+                      :alt="profile.name"
+                      :name="profile.name"
+                      class="bg-blue-600"
+                      size="sm"
+                    />
+                    <div class="text-right">
+                      <p class="text-sm font-medium text-gray-900">
+                        {{ profile.name }}
+                      </p>
+                      <p class="text-xs text-gray-500">{{ profile.email }}</p>
+                    </div>
+                    <UIcon name="i-heroicons-chevron-down" class="h-4 w-4 text-gray-400" />
+                  </div>
+                </template>
+              </UDropdown>
+            </UButton>
+          </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="p-6">
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation -->
+    <nav
+      class="fixed inset-x-0 bottom-0 z-30 bg-white border-t border-gray-200 px-4 py-2 lg:hidden"
+    >
+      <div class="flex items-center justify-between max-w-md mx-auto">
         <NuxtLink
           v-for="item in navigation"
           :key="item.to"
           :to="item.to"
           :class="[
-            'flex items-center gap-3 rounded-xl px-4 py-2.5 transition-colors',
+            'flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors',
             activePath.startsWith(item.to)
-              ? 'bg-amber-100 text-amber-700'
-              : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+              ? 'text-blue-600'
+              : 'text-gray-500 hover:text-gray-700',
           ]"
         >
-          <span class="text-lg">{{ item.icon }}</span>
-          <span class="font-medium">{{ item.label }}</span>
+          <UIcon :name="item.icon" class="h-5 w-5" />
+          <span>{{ item.label }}</span>
         </NuxtLink>
-      </nav>
-
-      <div class="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm">
-        <p class="font-semibold text-amber-700">Paid invoices</p>
-        <p class="mt-1 text-slate-600">Keep momentum going 💪🏽</p>
       </div>
-    </aside>
-
-    <div class="flex flex-1 flex-col">
-      <header class="flex items-center justify-between gap-4 px-4 pb-4 pt-6 sm:px-6 lg:px-10">
-        <div>
-          <h1 class="text-xl font-semibold md:text-2xl">
-            {{ activeNavLabel }}
-          </h1>
-          <p class="text-sm text-slate-500">{{ profile.address }}</p>
-        </div>
-
-        <NuxtLink
-          to="/app/settings"
-          class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm backdrop-blur"
-        >
-          <UAvatar :alt="profile.name" :name="profile.name" class="bg-amber-100 text-amber-700" size="md" />
-          <div class="flex flex-col">
-            <span class="text-sm font-medium text-slate-900">{{ profile.name }}</span>
-            <span class="text-xs text-slate-500">{{ profile.email }}</span>
-          </div>
-        </NuxtLink>
-      </header>
-
-      <main class="flex-1 px-4 pb-28 sm:px-6 lg:px-10 lg:pb-12">
-        <slot />
-      </main>
-
-      <footer class="px-4 pb-24 pt-6 text-xs text-slate-500 sm:px-6 lg:px-10 lg:pb-10">
-        © {{ new Date().getFullYear() }} MoMoInvoice. Made for Ghanaian SMEs.
-      </footer>
-    </div>
-
-    <nav
-      class="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-slate-200 bg-white/95 py-2 text-xs font-medium text-slate-500 shadow-2xl shadow-black/5 backdrop-blur lg:hidden"
-    >
-      <NuxtLink
-        v-for="item in navigation"
-        :key="item.to"
-        :to="item.to"
-        :class="[
-          'flex flex-col items-center gap-1 text-center transition-colors',
-          activePath.startsWith(item.to) ? 'text-amber-600' : 'hover:text-slate-900',
-        ]"
-      >
-        <span class="text-lg">{{ item.icon }}</span>
-        <span>{{ item.label }}</span>
-      </NuxtLink>
     </nav>
   </div>
 </template>
