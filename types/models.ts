@@ -12,6 +12,7 @@ export interface BusinessProfile {
   currency: string;
   themeColor: string;
   plan: "free" | "pro";
+  setupCompleted: boolean;
 }
 
 export interface ClientContact {

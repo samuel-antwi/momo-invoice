@@ -91,6 +91,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "setup_completed": {
+          "name": "setup_completed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "false"
         }
       },
       "indexes": {},

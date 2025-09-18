@@ -107,7 +107,7 @@ const invoiceTotal = (invoiceId: string) => {
             </div>
             <UButton
               to="/app/invoices"
-              class="btn-primary"
+              color="primary"
               icon="i-heroicons-arrow-top-right-on-square"
               size="sm"
             >
@@ -190,8 +190,9 @@ const invoiceTotal = (invoiceId: string) => {
                     </div>
                     <UButton
                       :to="`/app/invoices/${invoice.id}`"
+                      color="gray"
+                      variant="outline"
                       size="xs"
-                      class="btn-secondary"
                     >
                       Prep reminder
                     </UButton>
@@ -237,7 +238,7 @@ const invoiceTotal = (invoiceId: string) => {
                 >
                 <div class="h-2 w-16 overflow-hidden rounded-full bg-gray-200">
                   <div
-                    class="h-full rounded-full bg-blue-600"
+                    class="h-full rounded-full bg-amber-500"
                     :style="{
                       width: `${Math.round((count / totalClients) * 100)}%`,
                     }"
@@ -247,8 +248,8 @@ const invoiceTotal = (invoiceId: string) => {
             </div>
           </div>
 
-          <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p class="text-sm text-blue-800">
+          <div class="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <p class="text-sm text-amber-800">
               <span class="font-semibold">Pro tip:</span> Clients paying via MTN
               settle invoices 36% faster. Prioritise MoMo payment links in
               reminders.
@@ -270,7 +271,7 @@ const invoiceTotal = (invoiceId: string) => {
           </div>
           <UButton
             to="/app/invoices"
-            class="btn-primary"
+            color="primary"
             icon="i-heroicons-arrow-top-right-on-square"
           >
             View all invoices
@@ -294,7 +295,7 @@ const invoiceTotal = (invoiceId: string) => {
               <td>
                 <NuxtLink
                   :to="`/app/invoices/${invoice.id}`"
-                  class="text-blue-600 hover:text-blue-700 font-semibold"
+                  class="text-amber-600 hover:text-amber-700 font-semibold"
                 >
                   {{ invoice.invoiceNumber }}
                 </NuxtLink>

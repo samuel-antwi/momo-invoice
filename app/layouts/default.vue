@@ -29,7 +29,7 @@ const activeNavLabel = computed(
         <div class="p-6 border-b border-gray-200">
           <div class="flex items-center gap-3">
             <div
-              class="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center"
+              class="h-8 w-8 rounded-lg bg-amber-500 flex items-center justify-center"
             >
               <span class="text-white text-sm font-bold">M</span>
             </div>
@@ -68,7 +68,8 @@ const activeNavLabel = computed(
             </p>
             <UButton
               to="mailto:hello@momoinvoice.com"
-              class="btn-primary w-full"
+              color="primary"
+              class="w-full"
               size="sm"
             >
               Contact Support
@@ -107,7 +108,7 @@ const activeNavLabel = computed(
                     <UAvatar
                       :alt="profile.name"
                       :name="profile.name"
-                      class="bg-blue-600"
+                      class="bg-amber-500"
                       size="sm"
                     />
                     <div class="text-right">
@@ -143,7 +144,7 @@ const activeNavLabel = computed(
           :class="[
             'flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors',
             activePath.startsWith(item.to)
-              ? 'text-blue-600'
+              ? 'text-amber-600'
               : 'text-gray-500 hover:text-gray-700',
           ]"
         >

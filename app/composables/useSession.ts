@@ -11,6 +11,7 @@ const defaultProfile = (): BusinessProfile => ({
   currency: "GHS",
   themeColor: "#f59e0b",
   plan: "free",
+  setupCompleted: false,
 });
 
 export const useSession = () => {
@@ -67,14 +68,20 @@ export const useSession = () => {
   );
 
   const updateProfile = async (patch: Partial<BusinessProfile>) => {
+    const previous = { ...profile.value };
     profile.value = { ...profile.value, ...patch };
     if (!user.value) return;
 
-    await $fetch("/api/session", {
-      method: "PATCH",
-      body: patch,
-    });
-    await refresh();
+    try {
+      await $fetch("/api/session", {
+        method: "PATCH",
+        body: patch,
+      });
+      await refresh();
+    } catch (error) {
+      profile.value = previous;
+      throw error;
+    }
   };
 
   const updateThemeColor = async (color: string) => updateProfile({ themeColor: color });

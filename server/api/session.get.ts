@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
   const profile = {
     id: business.id,
     name: business.name,
+    slug: business.slug ?? undefined,
     email: business.email ?? "",
     phone: business.phone ?? "",
     whatsappNumber: business.whatsappNumber ?? "",
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
     currency: "GHS",
     themeColor: business.themeColor ?? "#f59e0b",
     plan: business.plan,
+    setupCompleted: business.setupCompleted,
   };
 
   const templateRows = await db

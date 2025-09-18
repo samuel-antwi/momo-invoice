@@ -18,6 +18,7 @@ const businessProfile: BusinessProfile = {
   currency: "GHS",
   themeColor: "#f59e0b",
   plan: "free",
+  setupCompleted: false,
 };
 
 const clients: ClientContact[] = [

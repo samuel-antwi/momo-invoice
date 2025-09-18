@@ -34,6 +34,7 @@ export const ensureBusinessForUser = async (user: User) => {
       .set({
         ownerId: user.id,
         email: unclaimed.email ?? user.email ?? null,
+        setupCompleted: false,
         updatedAt: new Date(),
       })
       .where(eq(businesses.id, unclaimed.id))
@@ -61,6 +62,7 @@ export const ensureBusinessForUser = async (user: User) => {
       slug,
       email: user.email ?? null,
       plan: "free",
+      setupCompleted: false,
     })
     .returning();
 

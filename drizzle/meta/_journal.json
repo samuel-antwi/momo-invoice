@@ -8,6 +8,13 @@
       "when": 1758154806523,
       "tag": "0000_violet_vivisector",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 0,
+      "tag": "0002_add_business_setup_flag",
+      "breakpoints": false
     }
   ]
 }

@@ -28,6 +28,7 @@ export const businesses = pgTable("businesses", {
   address: text("address"),
   themeColor: text("theme_color").default("#fbbf24"),
   plan: planEnum("plan").default("free").notNull(),
+  setupCompleted: boolean("setup_completed").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

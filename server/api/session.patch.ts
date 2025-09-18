@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
     themeColor?: string;
     plan?: "free" | "pro";
     address?: string;
+    setupCompleted?: boolean;
   }>(event);
 
   const business = await ensureBusinessForUser(user);
@@ -35,6 +36,7 @@ export default defineEventHandler(async (event) => {
   if (body.themeColor !== undefined) updates.themeColor = body.themeColor;
   if (body.plan !== undefined) updates.plan = body.plan;
   if (body.address !== undefined) updates.address = body.address;
+  if (body.setupCompleted !== undefined) updates.setupCompleted = body.setupCompleted;
 
   if (Object.keys(updates).length === 0) {
     return { success: true };

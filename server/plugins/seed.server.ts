@@ -45,6 +45,7 @@ export default async () => {
         address: demoBusiness.address,
         themeColor: demoBusiness.themeColor,
         plan: demoBusiness.plan,
+        setupCompleted: false,
       })
       .returning({ id: businesses.id });
 
