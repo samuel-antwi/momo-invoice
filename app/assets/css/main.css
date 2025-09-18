@@ -21,6 +21,10 @@
   --color-gray-900: #111827;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   min-height: 100vh;
   background-color: #fafafa;
