@@ -62,9 +62,9 @@ const invoiceTotal = (invoiceId: string) => {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="space-y-6 px-4 sm:px-0">
     <!-- Stats Grid -->
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
         title="Revenue received"
         :value="formatCurrency(summary.totalRevenue, profile.currency)"
@@ -92,7 +92,7 @@ const invoiceTotal = (invoiceId: string) => {
     </div>
 
     <!-- Main Content Grid -->
-    <div class="grid gap-6 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <!-- Attention Required Section -->
       <div class="card">
         <div class="card-header">
@@ -117,7 +117,7 @@ const invoiceTotal = (invoiceId: string) => {
         </div>
 
         <div class="card-body">
-          <div class="grid gap-6 md:grid-cols-2">
+          <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
             <!-- Overdue Section -->
             <div>
               <h4 class="text-sm font-semibold text-red-600 mb-3">Overdue</h4>
@@ -128,7 +128,9 @@ const invoiceTotal = (invoiceId: string) => {
                   :key="invoice.id"
                   class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                 >
-                  <div class="flex items-center justify-between mb-2">
+                  <div
+                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2"
+                  >
                     <div>
                       <p class="text-sm font-semibold text-gray-900">
                         {{ invoice.invoiceNumber }}
@@ -141,7 +143,7 @@ const invoiceTotal = (invoiceId: string) => {
                     <InvoiceStatusPill :status="invoice.status" />
                   </div>
 
-                  <div class="flex gap-2 mt-3">
+                  <div class="flex flex-col sm:flex-row gap-2 mt-3">
                     <UButton
                       :to="`/app/invoices/${invoice.id}`"
                       size="xs"
@@ -178,7 +180,9 @@ const invoiceTotal = (invoiceId: string) => {
                   :key="`soon_${invoice.id}`"
                   class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                 >
-                  <div class="flex items-center justify-between">
+                  <div
+                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                  >
                     <div>
                       <p class="text-sm font-semibold text-gray-900">
                         {{ invoice.invoiceNumber }}
@@ -193,6 +197,7 @@ const invoiceTotal = (invoiceId: string) => {
                       color="gray"
                       variant="outline"
                       size="xs"
+                      class="w-full sm:w-auto"
                     >
                       Prep reminder
                     </UButton>
@@ -238,7 +243,7 @@ const invoiceTotal = (invoiceId: string) => {
                 >
                 <div class="h-2 w-16 overflow-hidden rounded-full bg-gray-200">
                   <div
-                    class="h-full rounded-full bg-amber-500"
+                    class="h-full rounded-full bg-blue-600"
                     :style="{
                       width: `${Math.round((count / totalClients) * 100)}%`,
                     }"
@@ -248,8 +253,8 @@ const invoiceTotal = (invoiceId: string) => {
             </div>
           </div>
 
-          <div class="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-            <p class="text-sm text-amber-800">
+          <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p class="text-sm text-blue-800">
               <span class="font-semibold">Pro tip:</span> Clients paying via MTN
               settle invoices 36% faster. Prioritise MoMo payment links in
               reminders.
@@ -279,8 +284,8 @@ const invoiceTotal = (invoiceId: string) => {
         </div>
       </div>
 
-      <div class="overflow-hidden">
-        <table class="table">
+      <div class="overflow-x-auto">
+        <table class="table min-w-full">
           <thead>
             <tr>
               <th>Invoice</th>
@@ -295,7 +300,7 @@ const invoiceTotal = (invoiceId: string) => {
               <td>
                 <NuxtLink
                   :to="`/app/invoices/${invoice.id}`"
-                  class="text-amber-600 hover:text-amber-700 font-semibold"
+                  class="text-blue-600 hover:text-blue-700 font-semibold"
                 >
                   {{ invoice.invoiceNumber }}
                 </NuxtLink>

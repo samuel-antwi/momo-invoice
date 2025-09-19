@@ -29,7 +29,7 @@ const activeNavLabel = computed(
         <div class="p-6 border-b border-gray-200">
           <div class="flex items-center gap-3">
             <div
-              class="h-8 w-8 rounded-lg bg-amber-500 flex items-center justify-center"
+              class="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center"
             >
               <span class="text-white text-sm font-bold">M</span>
             </div>
@@ -83,41 +83,58 @@ const activeNavLabel = computed(
     <div class="main-content flex-1">
       <div class="max-w-7xl mx-auto">
         <!-- Header -->
-        <header class="bg-white border-b border-gray-200 px-6 py-4">
+        <header class="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-2xl font-semibold text-gray-900">
+              <h1 class="text-xl sm:text-2xl font-semibold text-gray-900">
                 {{ activeNavLabel }}
               </h1>
-              <p class="text-sm text-gray-600 mt-1">{{ profile.address }}</p>
+              <p class="text-sm text-gray-600 mt-1 hidden sm:block">
+                {{ profile.address }}
+              </p>
             </div>
             <UButton
               variant="ghost"
               size="sm"
-              class="flex items-center gap-3"
+              class="flex items-center gap-2 sm:gap-3"
             >
               <UDropdown
                 :items="[
-                  [{ label: 'Settings', icon: 'i-heroicons-cog-6-tooth', to: '/app/settings' }],
-                  [{ label: 'Log out', icon: 'i-heroicons-arrow-right-start-on-rectangle', click: logout }],
+                  [
+                    {
+                      label: 'Settings',
+                      icon: 'i-heroicons-cog-6-tooth',
+                      to: '/app/settings',
+                    },
+                  ],
+                  [
+                    {
+                      label: 'Log out',
+                      icon: 'i-heroicons-arrow-right-start-on-rectangle',
+                      click: logout,
+                    },
+                  ],
                 ]"
                 :popper="{ placement: 'bottom-end' }"
               >
                 <template #default>
-                  <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2 sm:gap-3">
                     <UAvatar
                       :alt="profile.name"
                       :name="profile.name"
-                      class="bg-amber-500"
+                      class="bg-blue-600"
                       size="sm"
                     />
-                    <div class="text-right">
+                    <div class="text-right hidden sm:block">
                       <p class="text-sm font-medium text-gray-900">
                         {{ profile.name }}
                       </p>
                       <p class="text-xs text-gray-500">{{ profile.email }}</p>
                     </div>
-                    <UIcon name="i-heroicons-chevron-down" class="h-4 w-4 text-gray-400" />
+                    <UIcon
+                      name="i-heroicons-chevron-down"
+                      class="h-4 w-4 text-gray-400"
+                    />
                   </div>
                 </template>
               </UDropdown>
@@ -126,7 +143,7 @@ const activeNavLabel = computed(
         </header>
 
         <!-- Main Content Area -->
-        <main class="p-6">
+        <main class="p-4 sm:p-6 pb-20 lg:pb-6">
           <slot />
         </main>
       </div>
@@ -144,7 +161,7 @@ const activeNavLabel = computed(
           :class="[
             'flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors',
             activePath.startsWith(item.to)
-              ? 'text-amber-600'
+              ? 'text-blue-600'
               : 'text-gray-500 hover:text-gray-700',
           ]"
         >

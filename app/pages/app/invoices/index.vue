@@ -86,56 +86,58 @@ const invoiceAmount = (invoiceId: string) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-10 animate-fade-in">
-    <section class="card-modern rounded-3xl p-8">
+  <div class="flex flex-col gap-6 animate-fade-in px-4 sm:px-0">
+    <section class="card rounded-3xl p-4 sm:p-8">
       <div
         class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between"
       >
         <div class="space-y-3">
           <div class="flex items-center gap-3">
             <div
-              class="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center"
+              class="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center"
             >
               <span class="text-white text-sm">📄</span>
             </div>
-            <p
-              class="text-sm font-bold uppercase tracking-wider text-purple-500"
-            >
+            <p class="text-sm font-bold uppercase tracking-wider text-blue-600">
               Invoices
             </p>
           </div>
-          <h2 class="text-3xl font-bold text-slate-900 gradient-text">
+          <h2 class="text-3xl font-bold text-gray-900">
             Manage every invoice with clarity
           </h2>
-          <p class="text-sm text-slate-600 leading-relaxed">
+          <p class="text-sm text-gray-600 leading-relaxed">
             Filter by status, share reminders, and keep MoMo cashflow visible.
           </p>
         </div>
-        <div class="flex flex-wrap items-center gap-4">
+        <div class="flex flex-col sm:flex-row gap-3">
           <UButton
-            class="btn-gradient shadow-lg hover:shadow-xl"
+            color="primary"
             icon="i-heroicons-plus"
             size="lg"
-            >Create invoice</UButton
+            class="w-full sm:w-auto"
           >
+            Create invoice
+          </UButton>
           <UButton
             variant="outline"
-            class="border-slate-300 text-slate-600 hover:bg-slate-50"
+            color="gray"
             icon="i-heroicons-arrow-down-tray"
             size="lg"
-            >Export CSV</UButton
+            class="w-full sm:w-auto"
           >
+            Export CSV
+          </UButton>
         </div>
       </div>
 
-      <div class="mt-8 grid gap-4 md:grid-cols-[1.2fr,1fr]">
+      <div class="mt-6 space-y-4">
         <div class="relative">
           <UInput
             v-model="searchTerm"
             icon="i-heroicons-magnifying-glass-20-solid"
-            placeholder="Search by client, invoice number, or amount"
+            placeholder="Search invoices..."
             size="lg"
-            class="rounded-2xl border border-white/50 bg-white/80 shadow-sm focus:shadow-md transition-all"
+            class="rounded-lg"
           />
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -143,89 +145,165 @@ const invoiceAmount = (invoiceId: string) => {
             v-for="stat in stats"
             :key="stat.key"
             :label="`${stat.label} (${stat.value})`"
-            :class="[
-              'rounded-full transition-all duration-200',
-              activeStatus.value === stat.key
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25'
-                : 'bg-white/80 text-slate-600 border border-slate-200 hover:bg-white hover:shadow-sm',
-            ]"
+            :variant="activeStatus.value === stat.key ? 'solid' : 'outline'"
+            :color="activeStatus.value === stat.key ? 'primary' : 'gray'"
             size="sm"
+            class="rounded-full"
             @click="activeStatus.value = stat.key"
           />
         </div>
       </div>
     </section>
 
-    <!-- Invoices Table -->
-    <section
-      class="card-modern rounded-3xl p-0 overflow-hidden animate-slide-up"
-      style="animation-delay: 0.2s"
-    >
-      <div class="overflow-hidden rounded-3xl">
-        <table class="min-w-full divide-y divide-slate-100 text-sm">
-          <thead class="bg-gradient-to-r from-slate-50 to-slate-100/80">
+    <!-- Invoices List -->
+    <section class="card rounded-3xl overflow-hidden animate-slide-up">
+      <!-- Mobile View -->
+      <div class="block sm:hidden">
+        <div v-if="filteredInvoices.length" class="divide-y divide-gray-100">
+          <div
+            v-for="invoice in filteredInvoices"
+            :key="invoice.id"
+            class="p-4 hover:bg-blue-50/30 transition-colors"
+          >
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <NuxtLink
+                  :to="`/app/invoices/${invoice.id}`"
+                  class="text-lg font-bold text-blue-600 hover:text-blue-700"
+                >
+                  {{ invoice.invoiceNumber }}
+                </NuxtLink>
+                <p class="text-sm text-gray-600 mt-1">
+                  {{ clientName(invoice.clientId) }}
+                </p>
+              </div>
+              <InvoiceStatusPill :status="invoice.status" />
+            </div>
+
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <p class="text-xs text-gray-500">Amount</p>
+                <p class="text-lg font-bold text-gray-900">
+                  {{
+                    formatCurrency(invoiceAmount(invoice.id), profile.currency)
+                  }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-gray-500">Due</p>
+                <p class="text-sm font-medium text-gray-900">
+                  {{ formatDate(invoice.dueDate) }}
+                </p>
+              </div>
+            </div>
+
+            <div class="flex gap-2">
+              <UButton
+                :to="`/app/invoices/${invoice.id}`"
+                size="sm"
+                color="primary"
+                class="flex-1"
+              >
+                Open
+              </UButton>
+              <UButton
+                :to="`/app/invoices/${invoice.id}`"
+                size="sm"
+                variant="outline"
+                color="gray"
+                class="flex-1"
+              >
+                Share
+              </UButton>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="px-4 py-12 text-center">
+          <div class="flex flex-col items-center gap-4">
+            <div
+              class="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center"
+            >
+              <span class="text-2xl">📄</span>
+            </div>
+            <div>
+              <p class="text-lg font-semibold text-gray-700 mb-2">
+                No invoices found
+              </p>
+              <p class="text-sm text-gray-500">
+                Create a new invoice or adjust your search filters.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop View -->
+      <div class="hidden sm:block overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-100 text-sm">
+          <thead class="bg-gray-50">
             <tr>
               <th
-                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-600"
+                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-gray-600"
               >
                 Invoice
               </th>
               <th
-                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-600"
+                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-gray-600"
               >
                 Client
               </th>
               <th
-                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-600"
+                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-gray-600"
               >
                 Issued
               </th>
               <th
-                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-600"
+                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-gray-600"
               >
                 Due
               </th>
               <th
-                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-600"
+                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-gray-600"
               >
                 Amount
               </th>
               <th
-                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-slate-600"
+                class="px-6 py-5 text-left text-xs font-bold uppercase tracking-wider text-gray-600"
               >
                 Status
               </th>
               <th
-                class="px-6 py-5 text-right text-xs font-bold uppercase tracking-wider text-slate-600"
+                class="px-6 py-5 text-right text-xs font-bold uppercase tracking-wider text-gray-600"
               >
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100 bg-white/95">
+          <tbody class="divide-y divide-gray-100 bg-white">
             <tr
               v-for="invoice in filteredInvoices"
               :key="invoice.id"
-              class="group hover:bg-gradient-to-r hover:from-purple-50/30 hover:to-pink-50/30 transition-all duration-200"
+              class="group hover:bg-blue-50/30 transition-all duration-200"
             >
-              <td class="px-6 py-5 font-bold text-slate-900">
+              <td class="px-6 py-5 font-bold text-gray-900">
                 <NuxtLink
                   :to="`/app/invoices/${invoice.id}`"
-                  class="text-purple-600 hover:text-purple-700 transition-colors"
+                  class="text-blue-600 hover:text-blue-700 transition-colors"
                 >
                   {{ invoice.invoiceNumber }}
                 </NuxtLink>
               </td>
-              <td class="px-6 py-5 text-slate-700 font-medium">
+              <td class="px-6 py-5 text-gray-700 font-medium">
                 {{ clientName(invoice.clientId) }}
               </td>
-              <td class="px-6 py-5 text-slate-600">
+              <td class="px-6 py-5 text-gray-600">
                 {{ formatDate(invoice.issueDate) }}
               </td>
-              <td class="px-6 py-5 text-slate-600">
+              <td class="px-6 py-5 text-gray-600">
                 {{ formatDate(invoice.dueDate) }}
               </td>
-              <td class="px-6 py-5 text-slate-900 font-semibold">
+              <td class="px-6 py-5 text-gray-900 font-semibold">
                 {{
                   formatCurrency(invoiceAmount(invoice.id), profile.currency)
                 }}
@@ -240,33 +318,36 @@ const invoiceAmount = (invoiceId: string) => {
                   <UButton
                     :to="`/app/invoices/${invoice.id}`"
                     size="xs"
-                    class="btn-gradient"
-                    >Open</UButton
+                    color="primary"
                   >
+                    Open
+                  </UButton>
                   <UButton
                     :to="`/app/invoices/${invoice.id}`"
                     size="xs"
                     variant="outline"
-                    class="border-slate-300 text-slate-600 hover:bg-slate-50"
-                    >Share</UButton
+                    color="gray"
                   >
+                    Share
+                  </UButton>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
+
         <div v-if="!filteredInvoices.length" class="px-8 py-12 text-center">
           <div class="flex flex-col items-center gap-4">
             <div
-              class="h-16 w-16 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center"
+              class="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center"
             >
               <span class="text-2xl">📄</span>
             </div>
             <div>
-              <p class="text-lg font-semibold text-slate-700 mb-2">
+              <p class="text-lg font-semibold text-gray-700 mb-2">
                 No invoices found
               </p>
-              <p class="text-sm text-slate-500">
+              <p class="text-sm text-gray-500">
                 Create a new invoice or adjust your search filters.
               </p>
             </div>

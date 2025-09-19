@@ -17,6 +17,17 @@ export default defineNuxtConfig({
 
   modules: [["@nuxt/ui", { fonts: false }], "@vueuse/nuxt", "@nuxtjs/supabase"],
 
+  colorMode: {
+    preference: "light",
+    fallback: "light",
+    hid: "nuxt-color-mode-script",
+    globalName: "__NUXT_COLOR_MODE__",
+    componentName: "ColorScheme",
+    classPrefix: "",
+    classSuffix: "",
+    storageKey: "nuxt-color-mode",
+  },
+
   supabase: {
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_ANON_KEY,

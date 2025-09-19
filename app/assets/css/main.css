@@ -4,21 +4,40 @@
 :root {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  --color-primary: #f59e0b;
-  --color-primary-hover: #d97706;
+  /* Primary brand colours - Blue theme from landing page */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #3b82f6;
+  --color-primary-dark: #1e40af;
+
+  /* Secondary brand colours */
+  --color-secondary: #6366f1;
+  --color-secondary-hover: #5b21b6;
+
+  /* Status colours */
   --color-success: #059669;
+  --color-success-light: #10b981;
   --color-warning: #d97706;
+  --color-warning-light: #f59e0b;
   --color-danger: #dc2626;
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1f2937;
-  --color-gray-900: #111827;
+  --color-danger-light: #ef4444;
+
+  /* Neutral greys */
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+
+  /* Background colours */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
 }
 
 html {
@@ -27,8 +46,8 @@ html {
 
 body {
   min-height: 100vh;
-  background-color: #fafafa;
-  color: #111827;
+  background-color: var(--color-bg-secondary);
+  color: var(--color-gray-900);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -108,7 +127,7 @@ body {
 }
 
 .nav-link.active {
-  background-color: #fef3c7;
+  background-color: #dbeafe;
   color: var(--color-primary);
 }
 
@@ -141,24 +160,78 @@ body {
 .form-input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-gray-300);
   border-radius: 6px;
   font-size: 14px;
+  background-color: white;
+  color: var(--color-gray-900);
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .form-label {
   display: block;
   margin-bottom: 4px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   font-size: 14px;
+}
+
+/* Fix UInput styling to use light theme */
+[data-ui="input"] input,
+[data-ui="input"] input[type="text"],
+[data-ui="input"] input[type="email"],
+[data-ui="input"] input[type="search"] {
+  background-color: white !important;
+  color: var(--color-gray-900) !important;
+  border-color: var(--color-gray-300) !important;
+}
+
+[data-ui="input"] input::placeholder {
+  color: var(--color-gray-500) !important;
+}
+
+[data-ui="input"] input:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Override any dark input styling */
+input[class*="bg-gray-900"],
+input[class*="bg-black"],
+input[class*="text-white"],
+.dark input,
+[data-theme="dark"] input {
+  background-color: white !important;
+  color: var(--color-gray-900) !important;
+  border-color: var(--color-gray-300) !important;
+}
+
+/* Force light theme for all inputs */
+input,
+textarea,
+select {
+  background-color: white !important;
+  color: var(--color-gray-900) !important;
+  border-color: var(--color-gray-300) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-gray-500) !important;
+}
+
+/* Specific UInput component overrides */
+.relative input,
+div[class*="relative"] input,
+[role="textbox"] {
+  background-color: white !important;
+  color: var(--color-gray-900) !important;
 }
 
 /* Sidebar */
@@ -172,7 +245,7 @@ body {
 
 /* Main Content */
 .main-content {
-  background: #fafafa;
+  background: var(--color-bg-secondary);
   min-height: 100vh;
 }
 
@@ -236,12 +309,138 @@ body {
   background-color: var(--color-danger);
 }
 
-/* Remove all the flashy animations and gradients */
-.animate-fade-in {
-  opacity: 1;
+/* Modern card styles matching landing page */
+.card-modern {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  border: 1px solid var(--color-gray-200);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
 }
+
+.card-modern:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.glass-panel {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.8) 100%
+  );
+  border: 1px solid var(--color-gray-200);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.btn-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-primary-light) 100%
+  );
+  border: none;
+  color: white !important;
+  transition: all 0.2s ease;
+}
+
+.btn-gradient:hover {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-hover) 0%,
+    var(--color-primary) 100%
+  );
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  color: white !important;
+}
+
+/* Ensure primary buttons have white text */
+.btn-primary,
+button[data-ui="primary"],
+.bg-primary {
+  color: white !important;
+}
+
+/* Fix UButton primary styling */
+[data-ui="button"][data-variant="solid"][data-color="primary"],
+.bg-blue-600,
+.bg-blue-500,
+button.bg-blue-600,
+button.bg-blue-500 {
+  background: var(--color-primary) !important;
+  color: white !important;
+}
+
+[data-ui="button"][data-variant="solid"][data-color="primary"]:hover,
+.bg-blue-600:hover,
+.bg-blue-500:hover,
+button.bg-blue-600:hover,
+button.bg-blue-500:hover {
+  background: var(--color-primary-hover) !important;
+  color: white !important;
+}
+
+/* General button text color fixes */
+.text-white {
+  color: white !important;
+}
+
+/* Ensure buttons with blue background have white text */
+.bg-blue-600 *,
+.bg-blue-500 *,
+button.bg-blue-600 *,
+button.bg-blue-500 * {
+  color: white !important;
+}
+
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--color-gray-900) 0%,
+    var(--color-gray-700) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle animations */
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
 .animate-slide-up {
-  transform: none;
+  animation: slideUp 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Clean, minimal focus states */

@@ -12,25 +12,25 @@ const props = defineProps<{
 const accentConfig = computed(() => {
   switch (props.accent) {
     case "emerald":
-      return { color: "text-green-600", bg: "bg-green-50", icon: "💰" };
+      return { color: "text-emerald-600", bg: "bg-emerald-50", icon: "💰" };
     case "blue":
       return { color: "text-blue-600", bg: "bg-blue-50", icon: "📊" };
     case "rose":
-      return { color: "text-red-600", bg: "bg-red-50", icon: "⚠️" };
+      return { color: "text-rose-600", bg: "bg-rose-50", icon: "⚠️" };
     case "amber":
-      return { color: "text-amber-600", bg: "bg-amber-50", icon: "👥" };
+      return { color: "text-blue-600", bg: "bg-blue-50", icon: "👥" };
     default:
-      return { color: "text-gray-600", bg: "bg-gray-50", icon: "📈" };
+      return { color: "text-slate-600", bg: "bg-slate-50", icon: "📈" };
   }
 });
 </script>
 
 <template>
   <div class="stat-card">
-    <div class="flex items-center justify-between mb-3">
+    <div class="flex items-center justify-between mb-2 sm:mb-3">
       <div
         :class="[
-          'h-8 w-8 rounded-lg flex items-center justify-center text-sm',
+          'h-6 w-6 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center text-xs sm:text-sm',
           accentConfig.bg,
         ]"
       >
@@ -38,8 +38,12 @@ const accentConfig = computed(() => {
       </div>
     </div>
 
-    <div class="stat-value">{{ value }}</div>
-    <div class="stat-label">{{ title }}</div>
-    <div v-if="props.subLabel" class="stat-sublabel">{{ props.subLabel }}</div>
+    <div class="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
+      {{ value }}
+    </div>
+    <div class="text-xs sm:text-sm text-gray-600 font-medium">{{ title }}</div>
+    <div v-if="props.subLabel" class="text-xs text-gray-500 mt-1">
+      {{ props.subLabel }}
+    </div>
   </div>
 </template>
