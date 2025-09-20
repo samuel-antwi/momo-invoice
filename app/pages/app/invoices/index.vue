@@ -86,7 +86,7 @@ const invoiceAmount = (invoiceId: string) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 animate-fade-in px-4 sm:px-0">
+  <div class="flex flex-col gap-6 animate-fade-in sm:px-0">
     <section class="card rounded-3xl p-4 sm:p-8">
       <div
         class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between"

@@ -91,6 +91,9 @@ export const useSession = () => {
     await supabase.auth.signOut();
     profile.value = defaultProfile();
     reminderTemplates.value = [];
+    if (import.meta.client) {
+      await navigateTo("/", { replace: true });
+    }
   };
 
   return {

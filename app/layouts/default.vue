@@ -80,8 +80,8 @@ const activeNavLabel = computed(
     </aside>
 
     <!-- Main content -->
-    <div class="main-content flex-1">
-      <div class="max-w-7xl mx-auto">
+    <div class="main-content flex-1 min-w-0">
+      <div class="mx-auto w-full max-w-7xl">
         <!-- Header -->
         <header class="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
           <div class="flex items-center justify-between">
@@ -93,52 +93,50 @@ const activeNavLabel = computed(
                 {{ profile.address }}
               </p>
             </div>
-            <UButton
-              variant="ghost"
-              size="sm"
-              class="flex items-center gap-2 sm:gap-3"
+            <UDropdownMenu
+              :items="[
+                [
+                  {
+                    label: 'Settings',
+                    icon: 'i-heroicons-cog-6-tooth',
+                    to: '/app/settings',
+                  },
+                ],
+                [
+                  {
+                    label: 'Log out',
+                    icon: 'i-heroicons-arrow-right-start-on-rectangle',
+                    onSelect: logout,
+                  },
+                ],
+              ]"
+              :popper="{ placement: 'bottom-end' }"
             >
-              <UDropdown
-                :items="[
-                  [
-                    {
-                      label: 'Settings',
-                      icon: 'i-heroicons-cog-6-tooth',
-                      to: '/app/settings',
-                    },
-                  ],
-                  [
-                    {
-                      label: 'Log out',
-                      icon: 'i-heroicons-arrow-right-start-on-rectangle',
-                      click: logout,
-                    },
-                  ],
-                ]"
-                :popper="{ placement: 'bottom-end' }"
-              >
-                <template #default>
-                  <div class="flex items-center gap-2 sm:gap-3">
-                    <UAvatar
-                      :alt="profile.name"
-                      :name="profile.name"
-                      class="bg-blue-600"
-                      size="sm"
-                    />
-                    <div class="text-right hidden sm:block">
-                      <p class="text-sm font-medium text-gray-900">
-                        {{ profile.name }}
-                      </p>
-                      <p class="text-xs text-gray-500">{{ profile.email }}</p>
-                    </div>
-                    <UIcon
-                      name="i-heroicons-chevron-down"
-                      class="h-4 w-4 text-gray-400"
-                    />
+              <template #default>
+                <UButton
+                  variant="ghost"
+                  size="sm"
+                  class="flex items-center gap-2 sm:gap-3"
+                >
+                  <UAvatar
+                    :alt="profile.name"
+                    :name="profile.name"
+                    class="bg-blue-600"
+                    size="sm"
+                  />
+                  <div class="text-right hidden sm:block">
+                    <p class="text-sm font-medium text-gray-900">
+                      {{ profile.name }}
+                    </p>
+                    <p class="text-xs text-gray-500">{{ profile.email }}</p>
                   </div>
-                </template>
-              </UDropdown>
-            </UButton>
+                  <UIcon
+                    name="i-heroicons-chevron-down"
+                    class="h-4 w-4 text-gray-400"
+                  />
+                </UButton>
+              </template>
+            </UDropdownMenu>
           </div>
         </header>
 
@@ -153,13 +151,13 @@ const activeNavLabel = computed(
     <nav
       class="fixed inset-x-0 bottom-0 z-30 bg-white border-t border-gray-200 px-4 py-2 lg:hidden"
     >
-      <div class="flex items-center justify-between max-w-md mx-auto">
+      <div class="flex items-center justify-between max-w-md mx-auto w-full gap-1">
         <NuxtLink
           v-for="item in navigation"
           :key="item.to"
           :to="item.to"
           :class="[
-            'flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors',
+            'flex flex-1 flex-col items-center justify-center gap-1 px-2 py-2 text-xs font-medium transition-colors',
             activePath.startsWith(item.to)
               ? 'text-blue-600'
               : 'text-gray-500 hover:text-gray-700',
