@@ -10,6 +10,7 @@ const defaultSummary = (): DashboardSummary => ({
   paidCount: 0,
   overdueCount: 0,
   pendingCount: 0,
+  activeClients: 0,
 });
 
 export const useInvoices = () => {

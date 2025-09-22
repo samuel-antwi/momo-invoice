@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
   let sentCount = 0;
   let paidCount = 0;
   let overdueCount = 0;
+  const activeClientIds = new Set<string>();
 
   const mapped = invoiceRows.map((invoice) => {
     const subtotal = parseAmount(invoice.subtotal);
@@ -56,6 +57,8 @@ export default defineEventHandler(async (event) => {
     const discountTotal = parseAmount(invoice.discountTotal);
     const total = parseAmount(invoice.total);
     const status = invoice.status;
+
+    activeClientIds.add(invoice.clientId);
 
     switch (status) {
       case "paid":
@@ -161,6 +164,7 @@ export default defineEventHandler(async (event) => {
       paidCount,
       overdueCount,
       pendingCount: sentCount + overdueCount,
+      activeClients: activeClientIds.size,
     },
     overdueInvoices,
     invoicesDueSoon,

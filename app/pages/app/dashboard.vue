@@ -12,10 +12,7 @@ const { summary, overdueInvoices, invoicesDueSoon, recentInvoices, invoices } =
   useInvoices();
 const { clients, clientsByProvider } = useClients();
 
-const totalClients = computed(() => {
-  const clientsArray = clients.value || [];
-  return clientsArray.length === 0 ? 1 : clientsArray.length;
-});
+const totalClients = computed(() => Math.max(summary.value.activeClients, 1));
 
 // Safe computed properties for arrays
 const safeOverdueInvoices = computed(() => overdueInvoices.value || []);
@@ -62,7 +59,7 @@ const invoiceTotal = (invoiceId: string) => {
 </script>
 
 <template>
-  <div class="space-y-6 px-4 sm:px-0">
+  <div class="space-y-6">
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
@@ -85,7 +82,7 @@ const invoiceTotal = (invoiceId: string) => {
       />
       <StatCard
         title="Active clients"
-        :value="(clients.value || []).length.toString()"
+        :value="summary.activeClients.toString()"
         sub-label="Contacts receiving invoices"
         accent="amber"
       />

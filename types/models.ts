@@ -76,6 +76,7 @@ export interface DashboardSummary {
   paidCount: number;
   overdueCount: number;
   pendingCount: number;
+  activeClients: number;
 }
 
 export interface ReminderTemplateSetting {

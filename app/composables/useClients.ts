@@ -6,8 +6,11 @@ export const useClients = () => {
   const breakdown = useState<Record<string, number>>("clients-breakdown", () => ({}));
   const user = useSupabaseUser();
 
-  const { data, pending, refresh } = useAsyncData("clients", () =>
-    $fetch<{ clients: ClientContact[]; breakdown: Record<string, number> }>("/api/clients"),
+  const { data, pending, refresh } = useAsyncData(
+    "clients",
+    () =>
+      $fetch<{ clients: ClientContact[]; breakdown: Record<string, number> }>("/api/clients"),
+    { server: false },
   );
 
   watchEffect(() => {
