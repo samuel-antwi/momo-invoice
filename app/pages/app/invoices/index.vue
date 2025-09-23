@@ -115,6 +115,7 @@ const invoiceAmount = (invoiceId: string) => {
             icon="i-heroicons-plus"
             size="lg"
             class="w-full sm:w-auto"
+            :to="'/app/invoices/new'"
           >
             Create invoice
           </UButton>

@@ -26,6 +26,16 @@ export interface ClientContact {
   notes?: string;
 }
 
+export interface CreateClientPayload {
+  fullName: string;
+  businessName?: string;
+  email?: string;
+  phone?: string;
+  whatsappNumber?: string;
+  momoProvider: "mtn" | "vodafone" | "airteltigo" | "other";
+  notes?: string;
+}
+
 export interface InvoiceLineItem {
   id: string;
   description: string;
@@ -33,6 +43,26 @@ export interface InvoiceLineItem {
   unitPrice: number;
   taxRate?: number; // expressed as decimal e.g. 0.125
   discount?: number; // flat amount
+}
+
+export interface InvoiceLineItemDraft {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  taxRate?: number;
+  discount?: number;
+}
+
+export interface CreateInvoicePayload {
+  clientId: string;
+  issueDate: string;
+  dueDate?: string | null;
+  status: InvoiceStatus;
+  currency: string;
+  notes?: string;
+  paymentInstructions?: string;
+  payableTo?: string;
+  lineItems: InvoiceLineItemDraft[];
 }
 
 export interface InvoiceReminder {

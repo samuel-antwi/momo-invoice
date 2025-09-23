@@ -4,7 +4,7 @@ import { serverSupabaseUser } from "#supabase/server";
 
 import { db } from "../db/client";
 import { businesses } from "../db/schema";
-import { ensureBusinessForUser } from "../utils/business";
+import { ensureBusinessForUser, toBusinessProfile } from "../utils/business";
 
 export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event);
@@ -36,15 +36,30 @@ export default defineEventHandler(async (event) => {
   if (body.themeColor !== undefined) updates.themeColor = body.themeColor;
   if (body.plan !== undefined) updates.plan = body.plan;
   if (body.address !== undefined) updates.address = body.address;
-  if (body.setupCompleted !== undefined) updates.setupCompleted = body.setupCompleted;
+  if (body.setupCompleted !== undefined) updates.setupCompleted = Boolean(body.setupCompleted);
 
-  if (Object.keys(updates).length === 0) {
-    return { success: true };
+  const hasUpdates = Object.keys(updates).length > 0;
+
+  let updatedBusiness = business;
+
+  if (hasUpdates) {
+    updates.updatedAt = new Date();
+
+    await db.update(businesses).set(updates).where(eq(businesses.id, business.id));
+
+    const [row] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.id, business.id))
+      .limit(1);
+
+    if (row) {
+      updatedBusiness = row;
+    }
   }
 
-  updates.updatedAt = new Date();
-
-  await db.update(businesses).set(updates).where(eq(businesses.id, business.id));
-
-  return { success: true };
+  return {
+    success: true,
+    profile: toBusinessProfile(updatedBusiness),
+  };
 });

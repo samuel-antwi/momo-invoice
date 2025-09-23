@@ -73,11 +73,22 @@ export const useSession = () => {
     if (!user.value) return;
 
     try {
-      await $fetch("/api/session", {
+      const response = await $fetch<{ profile?: BusinessProfile }>("/api/session", {
         method: "PATCH",
         body: patch,
       });
-      await refresh();
+      if (response?.profile) {
+        profile.value = { ...defaultProfile(), ...response.profile };
+        data.value = {
+          profile: response.profile,
+          reminderTemplates: response.profile
+            ? data.value?.reminderTemplates ?? reminderTemplates.value
+            : [],
+        };
+        reminderTemplates.value = data.value?.reminderTemplates ?? reminderTemplates.value;
+      } else if (!profile.value.setupCompleted) {
+        await refresh();
+      }
     } catch (error) {
       profile.value = previous;
       throw error;

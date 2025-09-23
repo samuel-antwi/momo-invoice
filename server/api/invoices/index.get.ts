@@ -4,8 +4,7 @@ import { serverSupabaseUser } from "#supabase/server";
 import { db } from "../../db/client";
 import { invoices } from "../../db/schema";
 import { ensureBusinessForUser } from "../../utils/business";
-
-const parseAmount = (value: unknown) => Number(value ?? 0);
+import { mapInvoiceRow } from "../../utils/invoice";
 
 export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event);
@@ -50,80 +49,34 @@ export default defineEventHandler(async (event) => {
   let paidCount = 0;
   let overdueCount = 0;
   const activeClientIds = new Set<string>();
-
   const mapped = invoiceRows.map((invoice) => {
-    const subtotal = parseAmount(invoice.subtotal);
-    const taxTotal = parseAmount(invoice.taxTotal);
-    const discountTotal = parseAmount(invoice.discountTotal);
-    const total = parseAmount(invoice.total);
-    const status = invoice.status;
+    const record = mapInvoiceRow(invoice);
 
-    activeClientIds.add(invoice.clientId);
+    activeClientIds.add(record.clientId);
 
-    switch (status) {
+    switch (record.status) {
       case "paid":
         paidCount += 1;
-        totalRevenue += total;
+        totalRevenue += record.total ?? 0;
         break;
       case "sent":
         sentCount += 1;
-        outstanding += total;
-        if (invoice.dueDate && new Date(invoice.dueDate) < now) {
+        outstanding += record.total ?? 0;
+        if (record.dueDate && new Date(record.dueDate) < now) {
           overdueCount += 1;
-          overdueTotal += total;
+          overdueTotal += record.total ?? 0;
         }
         break;
       case "overdue":
         overdueCount += 1;
-        overdueTotal += total;
-        outstanding += total;
+        overdueTotal += record.total ?? 0;
+        outstanding += record.total ?? 0;
         break;
       default:
         draftCount += 1;
     }
 
-    const lineItems = invoice.lineItems.map((item) => ({
-      id: item.id,
-      description: item.description,
-      quantity: Number(item.quantity ?? 0),
-      unitPrice: parseAmount(item.unitPrice),
-      taxRate: item.taxRate ? Number(item.taxRate) : undefined,
-      discount: item.discount ? parseAmount(item.discount) : undefined,
-    }));
-
-    const issueDate = invoice.issueDate instanceof Date
-      ? invoice.issueDate.toISOString()
-      : new Date(invoice.issueDate).toISOString();
-
-    const dueDate = invoice.dueDate
-      ? invoice.dueDate instanceof Date
-        ? invoice.dueDate.toISOString()
-        : new Date(invoice.dueDate).toISOString()
-      : undefined;
-
-    return {
-      id: invoice.id,
-      businessId: invoice.businessId,
-      clientId: invoice.clientId,
-      issueDate,
-      dueDate,
-      status,
-      invoiceNumber: invoice.invoiceNumber,
-      lineItems,
-      notes: invoice.notes ?? undefined,
-      paymentInstructions: invoice.paymentInstructions ?? undefined,
-      reminders: [],
-      lastSharedAt:
-        invoice.lastSharedAt instanceof Date
-          ? invoice.lastSharedAt.toISOString()
-          : invoice.lastSharedAt ?? undefined,
-      paidAt: invoice.paidAt instanceof Date ? invoice.paidAt.toISOString() : invoice.paidAt ?? undefined,
-      total,
-      subtotal,
-      taxTotal,
-      discountTotal,
-      clientName: invoice.client.fullName,
-    };
+    return record;
   });
 
   const overdueInvoices = mapped

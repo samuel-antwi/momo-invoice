@@ -2,7 +2,7 @@ import { db } from "../db/client";
 import { reminderTemplates } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { serverSupabaseUser } from "#supabase/server";
-import { ensureBusinessForUser } from "../utils/business";
+import { ensureBusinessForUser, toBusinessProfile } from "../utils/business";
 
 export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event);
@@ -13,20 +13,7 @@ export default defineEventHandler(async (event) => {
 
   const business = await ensureBusinessForUser(user);
 
-  const profile = {
-    id: business.id,
-    name: business.name,
-    slug: business.slug ?? undefined,
-    email: business.email ?? "",
-    phone: business.phone ?? "",
-    whatsappNumber: business.whatsappNumber ?? "",
-    logoUrl: business.logoUrl ?? undefined,
-    address: business.address ?? "",
-    currency: "GHS",
-    themeColor: business.themeColor ?? "#f59e0b",
-    plan: business.plan,
-    setupCompleted: business.setupCompleted,
-  };
+  const profile = toBusinessProfile(business);
 
   const templateRows = await db
     .select()

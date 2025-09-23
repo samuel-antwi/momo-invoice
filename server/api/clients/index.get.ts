@@ -1,9 +1,10 @@
 import { asc, eq } from "drizzle-orm";
 
+import { serverSupabaseUser } from "#supabase/server";
 import { db } from "../../db/client";
 import { clients } from "../../db/schema";
-import { serverSupabaseUser } from "#supabase/server";
 import { ensureBusinessForUser } from "../../utils/business";
+import { mapClientRow } from "../../utils/client";
 
 export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event);
@@ -26,16 +27,7 @@ export default defineEventHandler(async (event) => {
   }, {});
 
   return {
-    clients: rows.map((row) => ({
-      id: row.id,
-      businessName: row.businessName ?? undefined,
-      fullName: row.fullName,
-      email: row.email ?? undefined,
-      phone: row.phone ?? "",
-      whatsappNumber: row.whatsappNumber ?? undefined,
-      momoProvider: row.momoProvider,
-      notes: row.notes ?? undefined,
-    })),
+    clients: rows.map(mapClientRow),
     breakdown,
   };
 });

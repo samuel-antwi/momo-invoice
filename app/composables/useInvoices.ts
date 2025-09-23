@@ -1,5 +1,5 @@
 import { computed, watch, watchEffect } from "vue";
-import type { DashboardSummary, InvoiceRecord, InvoiceStatus } from "~/types/models";
+import type { CreateInvoicePayload, DashboardSummary, InvoiceRecord, InvoiceStatus } from "~/types/models";
 
 const defaultSummary = (): DashboardSummary => ({
   totalRevenue: 0,
@@ -89,6 +89,22 @@ export const useInvoices = () => {
     invoices.value = invoices.value.filter((invoice) => invoice.id !== id);
   };
 
+  const createInvoice = async (payload: CreateInvoicePayload) => {
+    const response = await $fetch<{ invoice: InvoiceRecord }>("/api/invoices", {
+      method: "POST",
+      body: payload,
+    });
+
+    if (!response?.invoice) {
+      throw new Error("Failed to create invoice");
+    }
+
+    addInvoice(response.invoice);
+    await refresh();
+
+    return response.invoice;
+  };
+
   return {
     invoices,
     summary: computed(() => summary.value),
@@ -102,5 +118,6 @@ export const useInvoices = () => {
     removeInvoice,
     setStatus,
     markPaid,
+    createInvoice,
   };
 };

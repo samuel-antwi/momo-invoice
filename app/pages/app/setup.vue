@@ -39,6 +39,8 @@ watch(
   { immediate: true, deep: false }
 );
 
+const isProfileLoading = computed(() => pending.value && !profile.value.id);
+
 const canSubmit = computed(() => {
   return Boolean(name.value.trim() && email.value.trim() && !isSubmitting.value);
 });
@@ -57,7 +59,7 @@ const handleSubmit = async () => {
       address: address.value.trim(),
       setupCompleted: true,
     });
-    router.replace("/app/dashboard");
+    router.replace("/app/dashboard").catch(() => {});
   } catch (error: any) {
     errorMessage.value = error?.message ?? "We couldn't save your business details. Please try again.";
   } finally {
@@ -80,7 +82,7 @@ const handleSubmit = async () => {
       </div>
 
       <div class="bg-white shadow-lg rounded-2xl border border-gray-200 p-8">
-        <div v-if="pending" class="mb-6">
+        <div v-if="isProfileLoading" class="mb-6">
           <p class="text-sm text-gray-500">Loading your profile…</p>
         </div>
 

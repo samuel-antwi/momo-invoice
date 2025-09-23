@@ -1,6 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { eq, isNull } from "drizzle-orm";
 
+import type { BusinessProfile } from "~/types/models";
+
 import { db } from "../db/client";
 import { businesses } from "../db/schema";
 
@@ -68,3 +70,18 @@ export const ensureBusinessForUser = async (user: User) => {
 
   return created;
 };
+
+export const toBusinessProfile = (business: typeof businesses.$inferSelect): BusinessProfile => ({
+  id: business.id,
+  name: business.name,
+  slug: business.slug ?? undefined,
+  email: business.email ?? "",
+  phone: business.phone ?? "",
+  whatsappNumber: business.whatsappNumber ?? "",
+  logoUrl: business.logoUrl ?? undefined,
+  address: business.address ?? "",
+  currency: "GHS",
+  themeColor: business.themeColor ?? "#f59e0b",
+  plan: business.plan,
+  setupCompleted: business.setupCompleted,
+});
