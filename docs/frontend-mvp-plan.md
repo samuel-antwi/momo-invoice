@@ -32,7 +32,7 @@
 4. **Shared Features**
    - Share modals (WhatsApp/SMS/email templates).
    - PDF preview (embed static template first, wire jsPDF later).
-   - Payment simulation modal (MoMo STK steps).
+   - Paystack checkout handoff (mocked link during dummy phase).
    - Reminder scheduler UI component.
 
 5. **Infrastructure Tasks**

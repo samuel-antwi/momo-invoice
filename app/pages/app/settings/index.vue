@@ -101,7 +101,7 @@ const saveProfile = () => {
             <div class="rounded-2xl border border-slate-100 bg-white/80 p-4 text-center">
               <p class="text-xs text-slate-500">Clients</p>
               <p class="mt-2 text-2xl font-semibold text-slate-900">{{ clients.length }}</p>
-              <p class="text-xs text-slate-500">MoMo ready contacts</p>
+              <p class="text-xs text-slate-500">Paystack-ready contacts</p>
             </div>
             <div class="rounded-2xl border border-slate-100 bg-white/80 p-4 text-center">
               <p class="text-xs text-slate-500">Plan</p>

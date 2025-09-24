@@ -168,7 +168,7 @@ const selectClient = (client: ClientContact) => {
               <p
                 class="text-xs font-semibold uppercase tracking-wide text-gray-500"
               >
-                Preferred MoMo
+                Preferred mobile money network
               </p>
               <p class="text-sm text-gray-900">
                 {{ selectedClient.momoProvider.toUpperCase() }}
@@ -226,7 +226,7 @@ const selectClient = (client: ClientContact) => {
         v-else
         class="card flex min-h-[320px] items-center justify-center rounded-3xl p-6 text-center text-sm text-gray-500"
       >
-        Select a client to view contact details, MoMo preferences, and invoice
+        Select a client to view contact details, mobile money preferences, and invoice
         performance.
       </div>
     </div>

@@ -34,9 +34,9 @@ const { paymentMethods: savedPaymentMethods, defaultMethod, createPaymentMethod 
 const { profile } = useSession();
 
 const momoProviderOptions = [
-  { label: "MTN MoMo", value: "mtn" },
-  { label: "Vodafone Cash", value: "vodafone" },
-  { label: "AirtelTigo Money", value: "airteltigo" },
+  { label: "MTN Mobile Money (Paystack)", value: "mtn" },
+  { label: "Vodafone Mobile Money (Paystack)", value: "vodafone" },
+  { label: "AirtelTigo Mobile Money (Paystack)", value: "airteltigo" },
   { label: "Other", value: "other" },
 ];
 
@@ -216,8 +216,20 @@ const applyPaymentMethodDefaults = (method?: PaymentMethod | null) => {
   if (method.instructions) {
     state.paymentInstructions = method.instructions;
   } else if (!hasInstructions && method.accountNumber) {
-    const providerLabel = method.provider ? method.provider.toUpperCase() : "MoMo";
-    state.paymentInstructions = `Send payment to ${providerLabel} ${method.accountNumber}`;
+    const providerLabel = (() => {
+      switch (method.provider) {
+        case "mtn":
+          return "MTN Mobile Money via Paystack";
+        case "vodafone":
+          return "Vodafone Mobile Money via Paystack";
+        case "airteltigo":
+          return "AirtelTigo Mobile Money via Paystack";
+        default:
+          return "Paystack checkout";
+      }
+    })();
+    const destination = method.accountNumber ? ` to account ${method.accountNumber}` : "";
+    state.paymentInstructions = `Collect payment through ${providerLabel}${destination}.`;
   }
 };
 
@@ -493,7 +505,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
         <div class="space-y-2">
           <p class="text-sm font-bold uppercase tracking-wider text-blue-600">New invoice</p>
           <h1 class="text-3xl font-bold text-gray-900">Create invoice</h1>
-          <p class="text-sm text-gray-600">Capture the essentials, send the link, and get paid via MoMo faster.</p>
+          <p class="text-sm text-gray-600">Capture the essentials, send the link, and let Paystack handle the mobile money collection.</p>
         </div>
         <div class="flex gap-3">
           <UButton variant="outline" color="gray" :to="'/app/invoices'">
@@ -736,7 +748,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
               <div class="flex flex-col gap-2">
                 <label :for="payableToFieldId" class="text-sm font-medium text-gray-700">Payable to</label>
                 <UFormGroup label="Payable to" name="payableTo" :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
-                  <UInput :id="payableToFieldId" v-model="state.payableTo" placeholder="Business or MoMo account name" />
+                  <UInput :id="payableToFieldId" v-model="state.payableTo" placeholder="Business or payout account name" />
                 </UFormGroup>
               </div>
               <div class="sm:col-span-2 flex flex-col gap-2">
@@ -749,7 +761,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                   <UTextarea
                     :id="paymentInstructionsFieldId"
                     v-model="state.paymentInstructions"
-                    placeholder="Include MoMo steps, reference numbers, or bank details"
+                    placeholder="Add any additional payout notes or bank backup details"
                     rows="3"
                   />
                 </UFormGroup>
@@ -810,7 +822,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
   <USlideover
     v-model:open="isPaymentMethodDrawerOpen"
     title="Add payment method"
-    description="Store reusable MoMo or bank details for faster invoicing."
+    description="Store reusable payout notes or bank details for faster invoicing."
     :overlay="true"
   >
     <template #body>
@@ -822,7 +834,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
       >
         <div class="space-y-4">
           <UFormGroup label="Label" name="label" required>
-            <UInput v-model="paymentMethodFormState.label" placeholder="Primary MoMo" />
+            <UInput v-model="paymentMethodFormState.label" placeholder="Primary Paystack" />
           </UFormGroup>
           <div class="grid gap-4 sm:grid-cols-2">
             <UFormGroup label="Provider" name="provider">
@@ -902,7 +914,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
             <UFormGroup label="WhatsApp number" name="whatsappNumber">
               <UInput v-model="clientFormState.whatsappNumber" placeholder="233200000000" />
             </UFormGroup>
-            <UFormGroup label="MoMo provider" name="momoProvider" required>
+          <UFormGroup label="Preferred mobile money network" name="momoProvider" required>
               <USelectMenu
                 v-model="clientFormState.momoProvider"
                 :items="momoProviderOptions"

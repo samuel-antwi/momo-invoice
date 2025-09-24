@@ -116,7 +116,7 @@ const invoiceNumber = (id: string) => invoices.value.find((invoice) => invoice.i
       <ol class="mt-3 list-decimal space-y-2 pl-4 text-sm text-slate-600">
         <li>Invoice hits the "sent" state and automatically picks the right reminder playbook.</li>
         <li>WhatsApp nudges go out with local tone. SMS via Africa's Talking kicks in on due day.</li>
-        <li>If unpaid after 48h, an email containing MoMo payment instructions follows up.</li>
+        <li>If unpaid after 48h, an email containing the Paystack payment link follows up.</li>
         <li>All reminder events log inside the invoice history with timestamps and outcomes.</li>
       </ol>
       <p class="mt-4 text-sm text-slate-500">

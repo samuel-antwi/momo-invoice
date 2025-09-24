@@ -10,7 +10,7 @@ A lightweight, mobile-first invoicing SaaS built specifically for Ghanaian small
 - **Client Management** - Add and manage client information
 - **Public Invoice Views** - Shareable invoice links for clients
 - **WhatsApp/SMS/Email Sharing** - One-click sharing to multiple channels
-- **Mobile Money Payment Simulation** - Demo MoMo payment flow
+- **Paystack Mobile Money Checkout** - Launch hosted payment links for MTN, Vodafone, and AirtelTigo
 - **PDF Generation** - Download and preview invoices as PDFs
 - **Dashboard Analytics** - Track paid, pending, and overdue invoices
 - **User Settings** - Business profile and plan management
@@ -19,7 +19,7 @@ A lightweight, mobile-first invoicing SaaS built specifically for Ghanaian small
 ### 🚧 Coming Soon (Backend Integration)
 
 - **Supabase Authentication** - Secure user management
-- **Real MoMo API Integration** - MTN MoMo, Vodafone Cash, AirtelTigo Money
+- **Deeper Paystack Automation** - Auto-settlement reconciliation & retries
 - **Automated Reminders** - WhatsApp/SMS payment reminders
 - **Plan Restrictions** - Free (5 invoices/month) vs Pro (unlimited)
 - **Real-time Payment Updates** - Automatic invoice status updates
@@ -31,7 +31,7 @@ A lightweight, mobile-first invoicing SaaS built specifically for Ghanaian small
 - **PDF Generation**: jsPDF
 - **State Management**: Vue Composables
 - **Storage**: LocalStorage (demo), Supabase (production)
-- **Payments**: MoMo API integration (planned)
+- **Payments**: Paystack aggregation (mobile money + cards)
 
 ## 🚀 Quick Start
 
@@ -61,7 +61,7 @@ The application will be available at `http://localhost:3000`
 1. **Sign Up/Sign In** - Use any email/password (dummy authentication)
 2. **Create Invoice** - Add client details, description, and amount
 3. **Share Invoice** - Send via WhatsApp, SMS, or email
-4. **Simulate Payment** - Test the MoMo payment flow
+4. **Collect Payment** - Launch the Paystack checkout flow
 5. **Download PDF** - Generate professional PDF invoices
 
 ## 📱 User Journey
@@ -79,7 +79,7 @@ The application will be available at `http://localhost:3000`
 
 1. **Receive invoice** via WhatsApp/SMS/Email
 2. **View invoice** on mobile-optimised page
-3. **Pay instantly** with MoMo (MTN, Vodafone, AirtelTigo)
+3. **Pay instantly** through Paystack (MTN, Vodafone, AirtelTigo)
 4. **Get confirmation** automatically
 
 ## 🏗 Project Structure
@@ -99,7 +99,6 @@ app/
 │   ├── invoices/       # Invoice management
 │   ├── clients/        # Client management
 │   ├── i/[id].vue      # Public invoice view
-│   ├── momo/simulate.vue # Payment simulation
 │   └── ...
 └── components/         # Reusable components (as needed)
 ```
@@ -109,7 +108,7 @@ app/
 - **Mobile-First**: Optimised for Ghana's mobile-heavy user base
 - **WhatsApp-Centric**: Primary sharing method for local market
 - **Simple & Fast**: Minimal clicks from invoice creation to payment
-- **Ghanaian Context**: MoMo integration, GH₵ currency, local UX patterns
+- **Ghanaian Context**: Mobile money via Paystack, GH₵ currency, local UX patterns
 
 ## 🔧 Development Commands
 
@@ -133,7 +132,7 @@ npm run generate     # Generate static site
 
 - **Frontend**: Vercel/Netlify
 - **Backend**: Supabase (Postgres, Auth, Storage)
-- **Payments**: MTN MoMo API integration
+- **Payments**: Paystack mobile money & card integration
 
 ## 📊 Business Model
 
@@ -149,9 +148,10 @@ SUPABASE_URL=your_supabase_project_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_KEY=your_supabase_service_role_key
 
-# MTN MoMo API
-MOMO_API_KEY=your_momo_api_key
-MOMO_USER_ID=your_momo_user_id
+# Paystack API
+PAYSTACK_PUBLIC_KEY=pk_live_xxx
+PAYSTACK_SECRET_KEY=sk_live_xxx
+PAYSTACK_WEBHOOK_SECRET=whsec_xxx
 
 # Application
 APP_URL=https://yourdomain.com

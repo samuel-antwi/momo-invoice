@@ -25,7 +25,7 @@
 
 ## 4. Differentiators
 - Mobile-first UX tuned for Ghanaian network speeds and devices.
-- Deep MoMo integrations (MTN, Vodafone, AirtelTigo) for instant payment capture.
+- Unified Paystack mobile money support (MTN, Vodafone, AirtelTigo) for instant payment capture.
 - WhatsApp-first communication workflows (share links, reminders).
 - Transparent pricing with low barrier free tier (≤ 5 invoices/month) and affordable pro plan.
 
@@ -39,8 +39,8 @@
    - Search and filter clients.
 3. **Invoice Builder**
    - Line items with description, quantity, unit price (GH₵), optional taxes/discounts.
-   - Auto-calculated subtotals, totals, and MoMo payment summary.
-   - Attach notes, payment terms, and bank/MoMo instructions.
+   - Auto-calculated subtotals, totals, and Paystack payment summary.
+   - Attach notes, payment terms, and Paystack/mobile money instructions.
    - Branded invoice preview (mobile and desktop).
 4. **Invoice Delivery**
    - Generate shareable invoice link (static JSON-backed for now).
@@ -59,7 +59,7 @@
 ### Phase 1 – Backend Integration (Supabase + Drizzle)
 - Supabase Auth with phone-first OTP and email fallback (magic link/password).
 - Multi-tenant database schema for businesses, clients, invoices, payments, reminders.
-- Real MoMo transaction logging via webhook relay.
+- Real Paystack transaction logging via webhook relay.
 - Background reminder jobs (Edge Functions / Cron).
 - Usage quotas and billing logic.
 
@@ -73,7 +73,7 @@
 1. **Create & Send Invoice**
    - Onboard → Add client → Create invoice → Preview → Share via WhatsApp → Track status.
 2. **Client Payment Flow**
-   - Client opens invoice link → Chooses MoMo provider → Initiates payment → Sees confirmation.
+   - Client opens invoice link → Starts Paystack checkout → Completes payment → Sees confirmation.
 3. **Reminder Flow**
    - Invoice marked unpaid after due date → Automated reminder template queued → WhatsApp/SMS/email message triggered → Status updates when paid.
 
@@ -86,7 +86,7 @@
 - **Invoice Editor**
   - Form validation for required fields (client, due date, line items, totals).
   - Real-time calculations for tax, discount, grand total, and balance due.
-  - Support payment splits (MoMo vs bank transfer instructions).
+  - Support payment splits (Paystack vs bank transfer instructions).
 - **Invoice Viewer**
   - Public-facing page responsive to mobile; includes Pay Now button, summary, and contact options.
   - Status badge (Draft, Sent, Paid, Overdue) with local state toggles.
@@ -94,7 +94,7 @@
   - Generate share message templates with placeholders (client name, amount, due date).
   - Provide copy-to-clipboard fallback when native share is unavailable.
 - **Payment Simulation**
-  - Modal that walks through MoMo STK push steps; allow marking invoice as paid.
+  - Modal that launches Paystack checkout; allow marking invoice as paid.
 - **Reminders UI**
   - Configure reminder schedule (e.g., 3 days before due, day of due, 2 days overdue).
   - Display reminder history with channel, timestamp, status (sent, failed).
@@ -122,7 +122,7 @@
   - WhatsApp deep links (`https://wa.me/<phone>?text=<message>`).
   - SMS (device SMS intent) initially; later connect to Africa's Talking SMS gateway for OTP delivery (simple REST API, Node SDK) — no Twilio dependency.
   - Email via `mailto:` initially; later transactional email API (Resend or SendGrid).
-  - MoMo APIs (MTN, Vodafone, AirtelTigo) behind unified payment service.
+- Paystack aggregation covering MTN, Vodafone, and AirtelTigo mobile money.
 - **Deployment**: Vercel for frontend; Supabase managed hosting for backend; CI via GitHub Actions.
 
 ## 10. UX & Design Guidelines
@@ -135,7 +135,7 @@
 
 ## 11. Analytics & Instrumentation (Phase 1+)
 - Track funnel: onboarding completion, invoice creation rate, share actions, payment confirmations.
-- Monitor payment success rate per MoMo provider.
+- Monitor payment success rate per Paystack mobile money channel.
 - Capture reminder effectiveness (paid within X days of reminder).
 - Respect privacy laws; offer opt-in for analytics.
 
@@ -147,7 +147,7 @@
 - **Week 6-8**: Backend integration kickoff, Supabase schema, auth, real reminders.
 
 ## 13. Risks & Mitigations
-- **MoMo API Variability**: Each provider has different flows. Mitigation: wrap APIs behind abstraction and start with MTN.
+- **Gateway Dependency**: Relying on Paystack introduces single vendor risk. Mitigation: monitor uptime and keep manual fallback instructions.
 - **WhatsApp Automation Limits**: Official API costs; rely on deep links initially, explore WA Business API later.
 - **SMS Delivery Costs**: Monitor pricing; integrate with Africa's Talking bulk SMS once backend is live; negotiate local rates.
 - **Global SMS Providers**: Twilio deemed too complex/costly for Ghana focus; Africa's Talking chosen for easier integration and Ghana coverage.
@@ -158,5 +158,5 @@
 - Users have smartphones with WhatsApp installed and active MoMo accounts.
 - Initial pilot can operate without full KYC/AML compliance; revisit when scaling beyond £500 MRR.
 - Local taxes (VAT/NHIL) can be manually entered; automate once rules are confirmed.
-- Regulatory approvals for MoMo integrations can be obtained within 4-6 weeks once initiated.
+- Paystack merchant onboarding and MoMo settlement configuration complete within 2-3 weeks once initiated.
 - Africa's Talking SMS infrastructure is available and reliable for OTP messaging; email remains a fallback for edge cases.

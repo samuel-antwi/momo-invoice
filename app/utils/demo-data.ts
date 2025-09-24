@@ -91,7 +91,7 @@ const invoices: InvoiceRecord[] = [
       { description: "Home Service Surcharge", quantity: 1, unitPrice: 80 },
     ]),
     notes: "Please make payment to MoMo number 024 XXX XXXX",
-    paymentInstructions: "MTN MoMo: *170# > Pay Bill > Enter Merchant ID 123456",
+    paymentInstructions: "Collect payment via Paystack mobile money link shared with the client.",
     reminders: reminders("inv_001"),
     lastSharedAt: new Date("2024-10-01T09:15:00Z").toISOString(),
   },

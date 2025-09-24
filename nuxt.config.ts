@@ -7,11 +7,16 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    paystack: {
+      secretKey: process.env.PAYSTACK_SECRET_KEY,
+      webhookSecret: process.env.PAYSTACK_WEBHOOK_SECRET,
+    },
     // Public environment variables (exposed to client)
     public: {
       appUrl: process.env.APP_URL || "http://localhost:3000",
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY,
     },
   },
 

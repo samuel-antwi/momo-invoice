@@ -19,7 +19,9 @@ function createDb() {
     max: 10,
   });
 
-  const drizzleDb = drizzle(client, { schema, logger: process.env.NODE_ENV !== "production" });
+  const enableQueryLogging = process.env.DRIZZLE_LOGS === "true";
+
+  const drizzleDb = drizzle(client, { schema, logger: enableQueryLogging });
 
   if (process.env.NODE_ENV !== "production") {
     globalForDb.__drizzleClient = drizzleDb;

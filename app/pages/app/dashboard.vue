@@ -24,11 +24,11 @@ const providerBreakdown = clientsByProvider;
 const providerLabel = (provider: string) => {
   switch (provider) {
     case "mtn":
-      return "MTN MoMo";
+      return "MTN via Paystack";
     case "vodafone":
-      return "Vodafone Cash";
+      return "Vodafone via Paystack";
     case "airteltigo":
-      return "AirtelTigo Money";
+      return "AirtelTigo via Paystack";
     default:
       return "Other";
   }
@@ -253,7 +253,7 @@ const invoiceTotal = (invoiceId: string) => {
           <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p class="text-sm text-blue-800">
               <span class="font-semibold">Pro tip:</span> Clients paying via MTN
-              settle invoices 36% faster. Prioritise MoMo payment links in
+              settle invoices 36% faster. Prioritise Paystack payment links in
               reminders.
             </p>
           </div>

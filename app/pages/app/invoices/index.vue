@@ -106,7 +106,7 @@ const invoiceAmount = (invoiceId: string) => {
             Manage every invoice with clarity
           </h2>
           <p class="text-sm text-gray-600 leading-relaxed">
-            Filter by status, share reminders, and keep MoMo cashflow visible.
+            Filter by status, share reminders, and keep Paystack cashflow visible.
           </p>
         </div>
         <div class="flex flex-col sm:flex-row gap-3">
