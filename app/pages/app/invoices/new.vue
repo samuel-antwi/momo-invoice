@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch, useId } from "vue";
 import { z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui/dist/runtime/types";
 
@@ -13,6 +13,13 @@ const router = useRouter();
 const toast = useToast();
 
 const formId = "create-invoice-form";
+const clientFieldId = useId();
+const currencyFieldId = useId();
+const issueDateFieldId = useId();
+const dueDateFieldId = useId();
+const payableToFieldId = useId();
+const paymentInstructionsFieldId = useId();
+const notesFieldId = useId();
 
 const { createInvoice } = useInvoices();
 const { clients, createClient } = useClients();
@@ -184,6 +191,8 @@ const addLineItem = () => {
   });
 };
 
+const lineItemFieldId = (index: number, field: string) => `invoice-line-${index}-${field}`;
+
 const removeLineItem = (index: number) => {
   if (state.lineItems.length <= 1) return;
   state.lineItems.splice(index, 1);
@@ -349,9 +358,9 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
         <UForm :id="formId" :schema="schema" :state="state" @submit="handleSubmit">
           <div class="space-y-8">
             <div class="grid gap-6 sm:grid-cols-2">
-              <div class="sm:col-span-2 space-y-2">
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-sm font-medium text-gray-700">Client</span>
+              <div class="sm:col-span-2 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <label :for="clientFieldId" class="text-sm font-medium text-gray-700">Client</label>
                   <UButton
                     variant="soft"
                     color="primary"
@@ -362,8 +371,9 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
                     New client
                   </UButton>
                 </div>
-                <UFormGroup label="Client" name="clientId" required :ui="{ label: 'sr-only' }">
+                <UFormGroup label="Client" name="clientId" required :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
                   <USelectMenu
+                    :id="clientFieldId"
                     v-model="state.clientId"
                     :items="clientOptions"
                     value-key="value"
@@ -372,19 +382,36 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
                   />
                 </UFormGroup>
               </div>
-              <UFormGroup label="Currency" name="currency">
-                <UInput v-model="state.currency" maxlength="3" placeholder="GHS" class="uppercase" />
-              </UFormGroup>
-              <div class="space-y-2">
-                <span class="text-sm font-medium text-gray-700">Issue date</span>
-                <UFormGroup label="Issue date" name="issueDate" required :ui="{ label: 'sr-only' }">
-                  <UInput v-model="state.issueDate" type="date" />
+              <div class="flex flex-col gap-2">
+                <label :for="currencyFieldId" class="text-sm font-medium text-gray-700">Currency</label>
+                <UFormGroup label="Currency" name="currency" :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
+                  <UInput
+                    :id="currencyFieldId"
+                    v-model="state.currency"
+                    maxlength="3"
+                    placeholder="GHS"
+                    class="uppercase"
+                  />
                 </UFormGroup>
               </div>
-              <div class="space-y-2">
-                <span class="text-sm font-medium text-gray-700">Due date</span>
-                <UFormGroup label="Due date" name="dueDate" :ui="{ label: 'sr-only' }">
-                  <UInput v-model="state.dueDate" type="date" />
+              <div class="flex flex-col gap-2">
+                <label :for="issueDateFieldId" class="text-sm font-medium text-gray-700">Issue date</label>
+                <UFormGroup label="Issue date" name="issueDate" required :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
+                  <UInput
+                    :id="issueDateFieldId"
+                    v-model="state.issueDate"
+                    type="date"
+                  />
+                </UFormGroup>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label :for="dueDateFieldId" class="text-sm font-medium text-gray-700">Due date</label>
+                <UFormGroup label="Due date" name="dueDate" :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
+                  <UInput
+                    :id="dueDateFieldId"
+                    v-model="state.dueDate"
+                    type="date"
+                  />
                 </UFormGroup>
               </div>
             </div>
@@ -416,40 +443,138 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
                     </UButton>
                   </div>
                   <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                    <UFormGroup :label="'Description'" :name="`lineItems.${index}.description`" required class="sm:col-span-2">
-                      <UInput v-model="item.description" placeholder="e.g., Bridal package" />
-                    </UFormGroup>
-                    <UFormGroup :label="'Quantity'" :name="`lineItems.${index}.quantity`" required>
-                      <UInput v-model="item.quantity" type="number" min="0" step="0.01" />
-                    </UFormGroup>
-                    <UFormGroup :label="'Unit price'" :name="`lineItems.${index}.unitPrice`" required>
-                      <UInput v-model="item.unitPrice" type="number" min="0" step="0.01" />
-                    </UFormGroup>
-                    <UFormGroup :label="'Tax (%)'" :name="`lineItems.${index}.taxRate`">
-                      <UInput v-model="item.taxRate" type="number" min="0" max="100" step="0.1" placeholder="0" />
-                    </UFormGroup>
-                    <UFormGroup :label="`Discount (${activeCurrency})`" :name="`lineItems.${index}.discount`">
-                      <UInput v-model="item.discount" type="number" min="0" step="0.01" placeholder="0" />
-                    </UFormGroup>
+                    <div class="sm:col-span-2 flex flex-col gap-2">
+                      <label :for="lineItemFieldId(index, 'description')" class="text-sm font-medium text-gray-700">
+                        Description
+                      </label>
+                      <UFormGroup
+                        :label="'Description'"
+                        :name="`lineItems.${index}.description`"
+                        required
+                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
+                      >
+                        <UInput
+                          :id="lineItemFieldId(index, 'description')"
+                          v-model="item.description"
+                          placeholder="e.g., Bridal package"
+                        />
+                      </UFormGroup>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <label :for="lineItemFieldId(index, 'quantity')" class="text-sm font-medium text-gray-700">
+                        Quantity
+                      </label>
+                      <UFormGroup
+                        :label="'Quantity'"
+                        :name="`lineItems.${index}.quantity`"
+                        required
+                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
+                      >
+                        <UInput
+                          :id="lineItemFieldId(index, 'quantity')"
+                          v-model="item.quantity"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                        />
+                      </UFormGroup>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <label :for="lineItemFieldId(index, 'unitPrice')" class="text-sm font-medium text-gray-700">
+                        Unit price
+                      </label>
+                      <UFormGroup
+                        :label="'Unit price'"
+                        :name="`lineItems.${index}.unitPrice`"
+                        required
+                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
+                      >
+                        <UInput
+                          :id="lineItemFieldId(index, 'unitPrice')"
+                          v-model="item.unitPrice"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                        />
+                      </UFormGroup>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <label :for="lineItemFieldId(index, 'taxRate')" class="text-sm font-medium text-gray-700">
+                        Tax (%)
+                      </label>
+                      <UFormGroup
+                        :label="'Tax (%)'"
+                        :name="`lineItems.${index}.taxRate`"
+                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
+                      >
+                        <UInput
+                          :id="lineItemFieldId(index, 'taxRate')"
+                          v-model="item.taxRate"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          placeholder="0"
+                        />
+                      </UFormGroup>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                      <label :for="lineItemFieldId(index, 'discount')" class="text-sm font-medium text-gray-700">
+                        Discount ({{ activeCurrency }})
+                      </label>
+                      <UFormGroup
+                        :label="`Discount (${activeCurrency})`"
+                        :name="`lineItems.${index}.discount`"
+                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
+                      >
+                        <UInput
+                          :id="lineItemFieldId(index, 'discount')"
+                          v-model="item.discount"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0"
+                        />
+                      </UFormGroup>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div class="grid gap-6 sm:grid-cols-2">
-              <UFormGroup label="Payable to" name="payableTo">
-                <UInput v-model="state.payableTo" placeholder="Business or MoMo account name" />
-              </UFormGroup>
-              <UFormGroup label="Payment instructions" name="paymentInstructions" class="sm:col-span-2">
-                <UTextarea
-                  v-model="state.paymentInstructions"
-                  placeholder="Include MoMo steps, reference numbers, or bank details"
-                  rows="3"
-                />
-              </UFormGroup>
-              <UFormGroup label="Internal notes" name="notes" class="sm:col-span-2">
-                <UTextarea v-model="state.notes" placeholder="Optional notes for the client" rows="3" />
-              </UFormGroup>
+              <div class="flex flex-col gap-2">
+                <label :for="payableToFieldId" class="text-sm font-medium text-gray-700">Payable to</label>
+                <UFormGroup label="Payable to" name="payableTo" :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
+                  <UInput :id="payableToFieldId" v-model="state.payableTo" placeholder="Business or MoMo account name" />
+                </UFormGroup>
+              </div>
+              <div class="sm:col-span-2 flex flex-col gap-2">
+                <label :for="paymentInstructionsFieldId" class="text-sm font-medium text-gray-700">Payment instructions</label>
+                <UFormGroup
+                  label="Payment instructions"
+                  name="paymentInstructions"
+                  :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
+                >
+                  <UTextarea
+                    :id="paymentInstructionsFieldId"
+                    v-model="state.paymentInstructions"
+                    placeholder="Include MoMo steps, reference numbers, or bank details"
+                    rows="3"
+                  />
+                </UFormGroup>
+              </div>
+              <div class="sm:col-span-2 flex flex-col gap-2">
+                <label :for="notesFieldId" class="text-sm font-medium text-gray-700">Internal notes</label>
+                <UFormGroup label="Internal notes" name="notes" :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
+                  <UTextarea
+                    :id="notesFieldId"
+                    v-model="state.notes"
+                    placeholder="Optional notes for the client"
+                    rows="3"
+                  />
+                </UFormGroup>
+              </div>
             </div>
           </div>
         </UForm>
@@ -549,5 +674,5 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
         </UButton>
       </div>
     </template>
-  </USlideover>
+</USlideover>
 </template>
