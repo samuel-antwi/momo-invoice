@@ -146,11 +146,11 @@ const invoiceAmount = (invoiceId: string) => {
             v-for="stat in stats"
             :key="stat.key"
             :label="`${stat.label} (${stat.value})`"
-            :variant="activeStatus.value === stat.key ? 'solid' : 'outline'"
-            :color="activeStatus.value === stat.key ? 'primary' : 'gray'"
+            :variant="activeStatus === stat.key ? 'solid' : 'outline'"
+            :color="activeStatus === stat.key ? 'primary' : 'gray'"
             size="sm"
             class="rounded-full"
-            @click="activeStatus.value = stat.key"
+            @click="activeStatus = stat.key"
           />
         </div>
       </div>
