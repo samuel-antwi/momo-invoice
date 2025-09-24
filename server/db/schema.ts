@@ -47,10 +47,24 @@ export const clients = pgTable("clients", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const paymentMethods = pgTable("payment_methods", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  businessId: uuid("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
+  label: text("label").notNull(),
+  provider: momoProviderEnum("provider"),
+  accountName: text("account_name"),
+  accountNumber: text("account_number"),
+  instructions: text("instructions"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const invoices = pgTable("invoices", {
   id: uuid("id").defaultRandom().primaryKey(),
   businessId: uuid("business_id").notNull().references(() => businesses.id, { onDelete: "cascade" }),
   clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  paymentMethodId: uuid("payment_method_id").references(() => paymentMethods.id, { onDelete: "set null" }),
   status: invoiceStatusEnum("status").default("draft").notNull(),
   currency: text("currency").default("GHS").notNull(),
   issueDate: timestamp("issue_date", { withTimezone: true }).defaultNow().notNull(),
@@ -121,11 +135,20 @@ export const businessesRelations = relations(businesses, ({ many }) => ({
   clients: many(clients),
   invoices: many(invoices),
   reminderTemplates: many(reminderTemplates),
+  paymentMethods: many(paymentMethods),
 }));
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
   business: one(businesses, {
     fields: [clients.businessId],
+    references: [businesses.id],
+  }),
+  invoices: many(invoices),
+}));
+
+export const paymentMethodsRelations = relations(paymentMethods, ({ one, many }) => ({
+  business: one(businesses, {
+    fields: [paymentMethods.businessId],
     references: [businesses.id],
   }),
   invoices: many(invoices),
@@ -139,6 +162,10 @@ export const invoicesRelations = relations(invoices, ({ one, many }) => ({
   client: one(clients, {
     fields: [invoices.clientId],
     references: [clients.id],
+  }),
+  paymentMethod: one(paymentMethods, {
+    fields: [invoices.paymentMethodId],
+    references: [paymentMethods.id],
   }),
   lineItems: many(invoiceLineItems),
   reminders: many(reminders),

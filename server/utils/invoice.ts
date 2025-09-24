@@ -81,6 +81,7 @@ export const mapInvoiceRow = (invoice: InvoiceRow): InvoiceRecord => {
     lineItems,
     notes: invoice.notes ?? undefined,
     paymentInstructions: invoice.paymentInstructions ?? undefined,
+    paymentMethodId: invoice.paymentMethodId ?? undefined,
     reminders: [],
     lastSharedAt,
     paidAt,

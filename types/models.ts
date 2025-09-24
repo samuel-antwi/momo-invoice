@@ -1,4 +1,5 @@
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
+export type MomoProvider = "mtn" | "vodafone" | "airteltigo" | "other";
 
 export interface BusinessProfile {
   id: string;
@@ -22,7 +23,7 @@ export interface ClientContact {
   email?: string;
   phone: string;
   whatsappNumber?: string;
-  momoProvider: "mtn" | "vodafone" | "airteltigo" | "other";
+  momoProvider: MomoProvider;
   notes?: string;
 }
 
@@ -32,8 +33,28 @@ export interface CreateClientPayload {
   email?: string;
   phone?: string;
   whatsappNumber?: string;
-  momoProvider: "mtn" | "vodafone" | "airteltigo" | "other";
+  momoProvider: MomoProvider;
   notes?: string;
+}
+
+export interface PaymentMethod {
+  id: string;
+  businessId: string;
+  label: string;
+  provider?: MomoProvider;
+  accountName?: string;
+  accountNumber?: string;
+  instructions?: string;
+  isDefault: boolean;
+}
+
+export interface CreatePaymentMethodPayload {
+  label: string;
+  provider?: MomoProvider;
+  accountName?: string;
+  accountNumber?: string;
+  instructions?: string;
+  isDefault?: boolean;
 }
 
 export interface InvoiceLineItem {
@@ -62,6 +83,7 @@ export interface CreateInvoicePayload {
   notes?: string;
   paymentInstructions?: string;
   payableTo?: string;
+  paymentMethodId?: string;
   lineItems: InvoiceLineItemDraft[];
 }
 
@@ -88,6 +110,7 @@ export interface InvoiceRecord {
   reminders: InvoiceReminder[];
   lastSharedAt?: string;
   paidAt?: string;
+  paymentMethodId?: string;
   subtotal?: number;
   taxTotal?: number;
   discountTotal?: number;

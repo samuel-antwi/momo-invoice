@@ -4,7 +4,7 @@ import { createError, readBody, setResponseStatus } from "h3";
 import { z } from "zod";
 
 import { db } from "../../db/client";
-import { clients, invoiceLineItems, invoices } from "../../db/schema";
+import { clients, invoiceLineItems, invoices, paymentMethods } from "../../db/schema";
 import { ensureBusinessForUser } from "../../utils/business";
 import { computeInvoiceTotals, mapInvoiceRow } from "../../utils/invoice";
 
@@ -47,6 +47,12 @@ const createInvoiceSchema = z
       .nullable()
       .transform((value) => value?.trim() || undefined),
     payableTo: z.string().max(255).optional().nullable().transform((value) => value?.trim() || undefined),
+    paymentMethodId: z
+      .string()
+      .uuid("Select a valid payment method")
+      .optional()
+      .nullable()
+      .transform((value) => value ?? undefined),
     lineItems: z.array(lineItemSchema).min(1, "Add at least one line item"),
   })
   .refine(
@@ -103,6 +109,25 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: "Client not found" });
   }
 
+  let paymentMethodRow: { id: string; businessId: string; accountName: string | null; instructions: string | null } | null =
+    null;
+
+  if (payload.paymentMethodId) {
+    paymentMethodRow = await db.query.paymentMethods.findFirst({
+      where: eq(paymentMethods.id, payload.paymentMethodId),
+      columns: {
+        id: true,
+        businessId: true,
+        accountName: true,
+        instructions: true,
+      },
+    });
+
+    if (!paymentMethodRow || paymentMethodRow.businessId !== business.id) {
+      throw createError({ statusCode: 404, statusMessage: "Payment method not found" });
+    }
+  }
+
   const totals = computeInvoiceTotals(
     payload.lineItems.map((item) => ({
       quantity: item.quantity,
@@ -127,6 +152,7 @@ export default defineEventHandler(async (event) => {
         businessId: business.id,
         clientId: payload.clientId,
         status: payload.status,
+        paymentMethodId: paymentMethodRow?.id ?? null,
         currency: payload.currency.toUpperCase(),
         issueDate: payload.issueDate,
         dueDate: payload.dueDate,
@@ -135,8 +161,8 @@ export default defineEventHandler(async (event) => {
         discountTotal: totals.discountTotal,
         total: totals.total,
         notes: payload.notes ?? null,
-        paymentInstructions: payload.paymentInstructions ?? null,
-        payableTo: payload.payableTo ?? null,
+        paymentInstructions: payload.paymentInstructions ?? paymentMethodRow?.instructions ?? null,
+        payableTo: payload.payableTo ?? paymentMethodRow?.accountName ?? null,
         invoiceNumber,
         sequentialNumber: nextSequential,
       })

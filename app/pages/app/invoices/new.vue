@@ -5,9 +5,15 @@ import type { FormSubmitEvent } from "@nuxt/ui/dist/runtime/types";
 
 import { useInvoices } from "~/composables/useInvoices";
 import { useClients } from "~/composables/useClients";
+import { usePaymentMethods } from "~/composables/usePaymentMethods";
 import { useSession } from "~/composables/useSession";
 import { formatCurrency } from "~/utils/invoice-helpers";
-import type { CreateClientPayload, CreateInvoicePayload } from "~/types/models";
+import type {
+  CreateClientPayload,
+  CreateInvoicePayload,
+  CreatePaymentMethodPayload,
+  PaymentMethod,
+} from "~/types/models";
 
 const router = useRouter();
 const toast = useToast();
@@ -17,12 +23,14 @@ const clientFieldId = useId();
 const currencyFieldId = useId();
 const issueDateFieldId = useId();
 const dueDateFieldId = useId();
+const paymentMethodFieldId = useId();
 const payableToFieldId = useId();
 const paymentInstructionsFieldId = useId();
 const notesFieldId = useId();
 
 const { createInvoice } = useInvoices();
 const { clients, createClient } = useClients();
+const { paymentMethods: savedPaymentMethods, defaultMethod, createPaymentMethod } = usePaymentMethods();
 const { profile } = useSession();
 
 const momoProviderOptions = [
@@ -63,6 +71,14 @@ const schema = z.object({
   issueDate: z.string().min(1, "Issue date is required"),
   dueDate: z.string().optional().nullable(),
   currency: z.string().min(3).max(3),
+  paymentMethodId: z
+    .union([z.string().uuid(), z.literal(""), z.null(), z.undefined()])
+    .transform((value) => {
+      if (typeof value === "string" && value.trim().length > 0) {
+        return value;
+      }
+      return undefined;
+    }),
   notes: z.string().max(2000).optional().nullable().transform((value) => value?.trim() || undefined),
   paymentInstructions: z
     .string()
@@ -116,11 +132,36 @@ const clientSchema = z.object({
 type ClientFormInput = z.input<typeof clientSchema>;
 type ClientFormSubmit = z.output<typeof clientSchema>;
 
+const paymentMethodSchema = z.object({
+  label: z
+    .string()
+    .transform((value) => value.trim())
+    .pipe(z.string().min(1, "Label is required")),
+  provider: z.enum(["mtn", "vodafone", "airteltigo", "other"]).optional(),
+  accountName: optionalTrimmed().refine(
+    (value) => !value || value.length <= 255,
+    { message: "Payable name must be 255 characters or less" },
+  ),
+  accountNumber: optionalTrimmed().refine(
+    (value) => !value || value.length <= 255,
+    { message: "Account number must be 255 characters or less" },
+  ),
+  instructions: optionalTrimmed().refine(
+    (value) => !value || value.length <= 2000,
+    { message: "Instructions must be 2000 characters or less" },
+  ),
+  isDefault: z.boolean().optional(),
+});
+
+type PaymentMethodFormInput = z.input<typeof paymentMethodSchema>;
+type PaymentMethodFormSubmit = z.output<typeof paymentMethodSchema>;
+
 const state = reactive<FormInput>({
   clientId: "",
   issueDate: new Date().toISOString().slice(0, 10),
   dueDate: "",
   currency: profile.value.currency || "GHS",
+  paymentMethodId: "",
   notes: "",
   paymentInstructions: "",
   payableTo: "",
@@ -143,7 +184,18 @@ const clientOptions = computed(() =>
   })),
 );
 
+const paymentMethodOptions = computed(() =>
+  savedPaymentMethods.value.map((method) => ({
+    label: method.label,
+    value: method.id,
+    description: [method.accountName, method.accountNumber].filter(Boolean).join(" • ") || undefined,
+  })),
+);
+
 const selectedClient = computed(() => clients.value.find((client) => client.id === state.clientId));
+const selectedPaymentMethod = computed(() =>
+  savedPaymentMethods.value.find((method) => method.id === state.paymentMethodId),
+);
 
 watch(
   () => profile.value.currency,
@@ -154,6 +206,41 @@ watch(
 );
 
 const activeCurrency = computed(() => (state.currency || "GHS").toUpperCase());
+
+const applyPaymentMethodDefaults = (method?: PaymentMethod | null) => {
+  if (!method) return;
+  if (method.accountName) {
+    state.payableTo = method.accountName;
+  }
+  const hasInstructions = Boolean(state.paymentInstructions && state.paymentInstructions.toString().trim().length > 0);
+  if (method.instructions) {
+    state.paymentInstructions = method.instructions;
+  } else if (!hasInstructions && method.accountNumber) {
+    const providerLabel = method.provider ? method.provider.toUpperCase() : "MoMo";
+    state.paymentInstructions = `Send payment to ${providerLabel} ${method.accountNumber}`;
+  }
+};
+
+watch(
+  defaultMethod,
+  (method) => {
+    if (!method) return;
+    if (!state.paymentMethodId || state.paymentMethodId === "") {
+      state.paymentMethodId = method.id;
+      applyPaymentMethodDefaults(method);
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => state.paymentMethodId,
+  (id) => {
+    if (!id) return;
+    const method = savedPaymentMethods.value.find((item) => item.id === id);
+    applyPaymentMethodDefaults(method);
+  },
+);
 
 const totals = computed(() => {
   const subtotal = state.lineItems.reduce((sum, item) => {
@@ -180,6 +267,9 @@ const isSubmitting = ref(false);
 const isClientDrawerOpen = ref(false);
 const isCreatingClient = ref(false);
 const clientFormId = "create-client-form";
+const isPaymentMethodDrawerOpen = ref(false);
+const isCreatingPaymentMethod = ref(false);
+const paymentMethodFormId = "create-payment-method-form";
 
 const addLineItem = () => {
   state.lineItems.push({
@@ -221,6 +311,7 @@ const handleSubmit = async (event: FormSubmitEvent<FormSubmit>) => {
       dueDate: toIsoString(event.data.dueDate ?? null),
       status: "draft",
       currency: activeCurrency.value,
+      paymentMethodId: event.data.paymentMethodId,
       notes: event.data.notes ?? undefined,
       paymentInstructions: event.data.paymentInstructions ?? undefined,
       payableTo: event.data.payableTo ?? undefined,
@@ -266,6 +357,15 @@ const clientFormState = reactive<ClientFormInput>({
   notes: "",
 });
 
+const paymentMethodFormState = reactive<PaymentMethodFormInput>({
+  label: "",
+  provider: "mtn",
+  accountName: "",
+  accountNumber: "",
+  instructions: "",
+  isDefault: savedPaymentMethods.value.length === 0,
+});
+
 const resetClientForm = () => {
   clientFormState.fullName = "";
   clientFormState.businessName = "";
@@ -276,14 +376,34 @@ const resetClientForm = () => {
   clientFormState.notes = "";
 };
 
+const resetPaymentMethodForm = () => {
+  paymentMethodFormState.label = "";
+  paymentMethodFormState.provider = "mtn";
+  paymentMethodFormState.accountName = "";
+  paymentMethodFormState.accountNumber = "";
+  paymentMethodFormState.instructions = "";
+  paymentMethodFormState.isDefault = savedPaymentMethods.value.length === 0;
+};
+
 const openClientDrawer = () => {
   resetClientForm();
   isClientDrawerOpen.value = true;
 };
 
+const openPaymentMethodDrawer = () => {
+  resetPaymentMethodForm();
+  isPaymentMethodDrawerOpen.value = true;
+};
+
 watch(isClientDrawerOpen, (open) => {
   if (!open) {
     resetClientForm();
+  }
+});
+
+watch(isPaymentMethodDrawerOpen, (open) => {
+  if (!open) {
+    resetPaymentMethodForm();
   }
 });
 
@@ -323,6 +443,45 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
     });
   } finally {
     isCreatingClient.value = false;
+  }
+};
+
+const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFormSubmit>) => {
+  if (isCreatingPaymentMethod.value) return;
+  isCreatingPaymentMethod.value = true;
+
+  try {
+    const payload: CreatePaymentMethodPayload = {
+      label: event.data.label,
+      provider: event.data.provider,
+      accountName: event.data.accountName,
+      accountNumber: event.data.accountNumber,
+      instructions: event.data.instructions,
+      isDefault: event.data.isDefault ?? false,
+    };
+
+    const created = await createPaymentMethod(payload);
+
+    toast.add({
+      title: "Payment method saved",
+      description: `${created.label} is ready to reuse on invoices.`,
+      color: "green",
+    });
+
+    state.paymentMethodId = created.id;
+    applyPaymentMethodDefaults(created);
+    isPaymentMethodDrawerOpen.value = false;
+  } catch (error) {
+    const validation = (error as { data?: { errors?: Record<string, string[]> } }).data?.errors;
+    const serverMessage = validation ? Object.values(validation).flat()[0] : undefined;
+    const fallback = error instanceof Error ? error.message : undefined;
+    toast.add({
+      title: "Unable to save payment method",
+      description: serverMessage || fallback || "We couldn't save the payment method. Please try again.",
+      color: "red",
+    });
+  } finally {
+    isCreatingPaymentMethod.value = false;
   }
 };
 </script>
@@ -413,6 +572,37 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
                     type="date"
                   />
                 </UFormGroup>
+              </div>
+              <div class="sm:col-span-2 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                  <label :for="paymentMethodFieldId" class="text-sm font-medium text-gray-700">Payment method</label>
+                  <UButton
+                    variant="soft"
+                    color="primary"
+                    size="sm"
+                    icon="i-heroicons-plus"
+                    @click.prevent="openPaymentMethodDrawer"
+                  >
+                    New method
+                  </UButton>
+                </div>
+                <UFormGroup
+                  label="Payment method"
+                  name="paymentMethodId"
+                  :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
+                >
+                  <USelectMenu
+                    :id="paymentMethodFieldId"
+                    v-model="state.paymentMethodId"
+                    :items="paymentMethodOptions"
+                    value-key="value"
+                    placeholder="Select payment method"
+                    search-input
+                  />
+                </UFormGroup>
+                <p v-if="selectedPaymentMethod" class="text-xs text-gray-500">
+                  {{ [selectedPaymentMethod.accountName, selectedPaymentMethod.accountNumber].filter(Boolean).join(" • ") }}
+                </p>
               </div>
             </div>
 
@@ -616,6 +806,76 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
       </UCard>
     </div>
   </div>
+
+  <USlideover
+    v-model:open="isPaymentMethodDrawerOpen"
+    title="Add payment method"
+    description="Store reusable MoMo or bank details for faster invoicing."
+    :overlay="true"
+  >
+    <template #body>
+      <UForm
+        :id="paymentMethodFormId"
+        :schema="paymentMethodSchema"
+        :state="paymentMethodFormState"
+        @submit="handlePaymentMethodSubmit"
+      >
+        <div class="space-y-4">
+          <UFormGroup label="Label" name="label" required>
+            <UInput v-model="paymentMethodFormState.label" placeholder="Primary MoMo" />
+          </UFormGroup>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <UFormGroup label="Provider" name="provider">
+              <USelectMenu
+                v-model="paymentMethodFormState.provider"
+                :items="momoProviderOptions"
+                value-key="value"
+                placeholder="Select provider"
+                search-input
+              />
+            </UFormGroup>
+            <UFormGroup label="Account number" name="accountNumber">
+              <UInput v-model="paymentMethodFormState.accountNumber" placeholder="233200000000" />
+            </UFormGroup>
+          </div>
+          <UFormGroup label="Payable to" name="accountName">
+            <UInput v-model="paymentMethodFormState.accountName" placeholder="Business or account name" />
+          </UFormGroup>
+          <UFormGroup label="Instructions" name="instructions">
+            <UTextarea
+              v-model="paymentMethodFormState.instructions"
+              rows="3"
+              placeholder="Optional instructions, e.g. reference or bank branch"
+            />
+          </UFormGroup>
+          <div class="flex items-center justify-between gap-3 rounded-xl border border-gray-100 px-3 py-2">
+            <div>
+              <p class="text-sm font-medium text-gray-700">Set as default</p>
+              <p class="text-xs text-gray-500">New invoices will auto-fill with this method.</p>
+            </div>
+            <UToggle v-model="paymentMethodFormState.isDefault" />
+          </div>
+        </div>
+      </UForm>
+    </template>
+
+    <template #footer="{ close }">
+      <div class="flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
+        <UButton variant="ghost" color="gray" @click="close">
+          Cancel
+        </UButton>
+        <UButton
+          color="primary"
+          icon="i-heroicons-credit-card"
+          :loading="isCreatingPaymentMethod"
+          type="submit"
+          :form="paymentMethodFormId"
+        >
+          Save method
+        </UButton>
+      </div>
+    </template>
+  </USlideover>
 
   <USlideover
     v-model:open="isClientDrawerOpen"
