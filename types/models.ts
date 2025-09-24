@@ -14,6 +14,12 @@ export interface BusinessProfile {
   themeColor: string;
   plan: "free" | "pro";
   setupCompleted: boolean;
+  paystackSubaccountCode?: string;
+  paystackSubaccountStatus: "unconfigured" | "pending" | "active" | "error";
+  paystackSplitCode?: string;
+  paystackSettlementBankCode?: string;
+  paystackSettlementAccountNumber?: string;
+  paystackSettlementAccountName?: string;
 }
 
 export interface ClientContact {

@@ -11,6 +11,7 @@ const navigation = [
   { label: "Invoices", to: "/app/invoices", icon: "i-heroicons-document-text" },
   { label: "Clients", to: "/app/clients", icon: "i-heroicons-users" },
   { label: "Reminders", to: "/app/reminders", icon: "i-heroicons-bell-alert" },
+  { label: "Settings", to: "/app/settings", icon: "i-heroicons-cog-6-tooth" },
 ];
 
 const activePath = computed(() => route.path);
@@ -151,7 +152,9 @@ const activeNavLabel = computed(
     <nav
       class="fixed inset-x-0 bottom-0 z-30 bg-white border-t border-gray-200 px-4 py-2 lg:hidden"
     >
-      <div class="flex items-center justify-between max-w-md mx-auto w-full gap-1">
+      <div
+        class="flex items-center justify-between max-w-md mx-auto w-full gap-1"
+      >
         <NuxtLink
           v-for="item in navigation"
           :key="item.to"

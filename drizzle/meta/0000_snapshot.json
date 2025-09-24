@@ -206,8 +206,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.invoice_line_items": {
-      "name": "invoice_line_items",
+    "public.payment_methods": {
+      "name": "payment_methods",
       "schema": "",
       "columns": {
         "id": {
@@ -217,51 +217,49 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "invoice_id": {
-          "name": "invoice_id",
+        "business_id": {
+          "name": "business_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "description": {
-          "name": "description",
+        "label": {
+          "name": "label",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "quantity": {
-          "name": "quantity",
-          "type": "numeric(10, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'1'"
-        },
-        "unit_price": {
-          "name": "unit_price",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'0'"
-        },
-        "tax_rate": {
-          "name": "tax_rate",
-          "type": "numeric(5, 4)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'0'"
-        },
-        "discount": {
-          "name": "discount",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'0'"
-        },
-        "sort_order": {
-          "name": "sort_order",
-          "type": "integer",
+        "provider": {
+          "name": "provider",
+          "type": "momo_provider",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
+        },
+        "account_name": {
+          "name": "account_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "account_number": {
+          "name": "account_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "instructions": {
+          "name": "instructions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "false"
         },
         "created_at": {
           "name": "created_at",
@@ -280,12 +278,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "invoice_line_items_invoice_id_invoices_id_fk": {
-          "name": "invoice_line_items_invoice_id_invoices_id_fk",
-          "tableFrom": "invoice_line_items",
-          "tableTo": "invoices",
+        "payment_methods_business_id_businesses_id_fk": {
+          "name": "payment_methods_business_id_businesses_id_fk",
+          "tableFrom": "payment_methods",
+          "tableTo": "businesses",
           "columnsFrom": [
-            "invoice_id"
+            "business_id"
           ],
           "columnsTo": [
             "id"
@@ -323,6 +321,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "payment_method_id": {
+          "name": "payment_method_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "status": {
           "name": "status",
           "type": "invoice_status",
@@ -353,30 +357,38 @@
         },
         "subtotal": {
           "name": "subtotal",
-          "type": "numeric(12, 2)",
+          "type": "numeric",
+          "precision": 12,
+          "scale": 2,
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'0'"
         },
         "tax_total": {
           "name": "tax_total",
-          "type": "numeric(12, 2)",
+          "type": "numeric",
+          "precision": 12,
+          "scale": 2,
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'0'"
         },
         "discount_total": {
           "name": "discount_total",
-          "type": "numeric(12, 2)",
+          "type": "numeric",
+          "precision": 12,
+          "scale": 2,
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'0'"
         },
         "total": {
           "name": "total",
-          "type": "numeric(12, 2)",
+          "type": "numeric",
+          "precision": 12,
+          "scale": 2,
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "'0'"
         },
         "notes": {
@@ -394,12 +406,6 @@
         "payable_to": {
           "name": "payable_to",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "payment_method_id": {
-          "name": "payment_method_id",
-          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -490,8 +496,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.payment_methods": {
-      "name": "payment_methods",
+    "public.invoice_line_items": {
+      "name": "invoice_line_items",
       "schema": "",
       "columns": {
         "id": {
@@ -501,49 +507,59 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "business_id": {
-          "name": "business_id",
+        "invoice_id": {
+          "name": "invoice_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "label": {
-          "name": "label",
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "provider": {
-          "name": "provider",
-          "type": "momo_provider",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "account_name": {
-          "name": "account_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "account_number": {
-          "name": "account_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "instructions": {
-          "name": "instructions",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "is_default": {
-          "name": "is_default",
-          "type": "boolean",
+        "quantity": {
+          "name": "quantity",
+          "type": "numeric",
+          "precision": 10,
+          "scale": 2,
           "primaryKey": false,
           "notNull": true,
-          "default": false
+          "default": "'1'"
+        },
+        "unit_price": {
+          "name": "unit_price",
+          "type": "numeric",
+          "precision": 12,
+          "scale": 2,
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "tax_rate": {
+          "name": "tax_rate",
+          "type": "numeric",
+          "precision": 5,
+          "scale": 4,
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "discount": {
+          "name": "discount",
+          "type": "numeric",
+          "precision": 12,
+          "scale": 2,
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -560,98 +576,11 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "idx_payment_methods_business_id": {
-          "name": "idx_payment_methods_business_id",
-          "columns": [
-            "business_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "payment_methods_business_id_businesses_id_fk": {
-          "name": "payment_methods_business_id_businesses_id_fk",
-          "tableFrom": "payment_methods",
-          "tableTo": "businesses",
-          "columnsFrom": [
-            "business_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.payments": {
-      "name": "payments",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "invoice_id": {
-          "name": "invoice_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount": {
-          "name": "amount",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "method": {
-          "name": "method",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'momo'"
-        },
-        "reference": {
-          "name": "reference",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "metadata": {
-          "name": "metadata",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
       "indexes": {},
       "foreignKeys": {
-        "payments_invoice_id_invoices_id_fk": {
-          "name": "payments_invoice_id_invoices_id_fk",
-          "tableFrom": "payments",
+        "invoice_line_items_invoice_id_invoices_id_fk": {
+          "name": "invoice_line_items_invoice_id_invoices_id_fk",
+          "tableFrom": "invoice_line_items",
           "tableTo": "invoices",
           "columnsFrom": [
             "invoice_id"
@@ -710,7 +639,7 @@
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "default": "true"
         },
         "created_at": {
           "name": "created_at",

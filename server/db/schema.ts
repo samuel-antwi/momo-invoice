@@ -29,6 +29,13 @@ export const businesses = pgTable("businesses", {
   themeColor: text("theme_color").default("#fbbf24"),
   plan: planEnum("plan").default("free").notNull(),
   setupCompleted: boolean("setup_completed").default(false).notNull(),
+  paystackSubaccountCode: text("paystack_subaccount_code"),
+  paystackSplitCode: text("paystack_split_code"),
+  paystackSubaccountStatus: text("paystack_subaccount_status").notNull().default("unconfigured"),
+  paystackSettlementBankCode: text("paystack_settlement_bank_code"),
+  paystackSettlementAccountNumber: text("paystack_settlement_account_number"),
+  paystackSettlementAccountName: text("paystack_settlement_account_name"),
+  paystackSubaccountCreatedAt: timestamp("paystack_subaccount_created_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

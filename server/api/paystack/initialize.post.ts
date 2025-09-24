@@ -60,6 +60,9 @@ export default defineEventHandler(async (event) => {
 
   const email = invoiceRow.client.email || business.email || `billing+${invoiceRow.id}@momoinvoice.app`;
 
+  const subaccountCode = business.paystackSubaccountCode ?? undefined;
+  const splitCode = business.paystackSplitCode ?? undefined;
+
   const transaction = await initializePaystackTransaction({
     reference,
     email,
@@ -70,7 +73,11 @@ export default defineEventHandler(async (event) => {
       invoiceId: invoiceRow.id,
       businessId: business.id,
       clientId: invoiceRow.clientId,
+      workspace: business.slug,
     },
+    subaccount: subaccountCode,
+    splitCode,
+    bearer: subaccountCode ? "subaccount" : undefined,
   });
 
   await db.transaction(async (tx) => {

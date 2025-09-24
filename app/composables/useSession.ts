@@ -12,6 +12,7 @@ const defaultProfile = (): BusinessProfile => ({
   themeColor: "#f59e0b",
   plan: "free",
   setupCompleted: false,
+  paystackSubaccountStatus: "unconfigured",
 });
 
 export const useSession = () => {

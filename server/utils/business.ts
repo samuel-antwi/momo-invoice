@@ -84,4 +84,10 @@ export const toBusinessProfile = (business: typeof businesses.$inferSelect): Bus
   themeColor: business.themeColor ?? "#f59e0b",
   plan: business.plan,
   setupCompleted: business.setupCompleted,
+  paystackSubaccountCode: business.paystackSubaccountCode ?? undefined,
+  paystackSplitCode: business.paystackSplitCode ?? undefined,
+  paystackSubaccountStatus: (business.paystackSubaccountStatus as BusinessProfile["paystackSubaccountStatus"]) ?? "unconfigured",
+  paystackSettlementBankCode: business.paystackSettlementBankCode ?? undefined,
+  paystackSettlementAccountNumber: business.paystackSettlementAccountNumber ?? undefined,
+  paystackSettlementAccountName: business.paystackSettlementAccountName ?? undefined,
 });
