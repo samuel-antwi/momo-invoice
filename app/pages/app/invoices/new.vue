@@ -832,41 +832,83 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
         :state="paymentMethodFormState"
         @submit="handlePaymentMethodSubmit"
       >
-        <div class="space-y-4">
-          <UFormGroup label="Label" name="label" required>
-            <UInput v-model="paymentMethodFormState.label" placeholder="Primary Paystack" />
-          </UFormGroup>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <UFormGroup label="Provider" name="provider">
-              <USelectMenu
-                v-model="paymentMethodFormState.provider"
-                :items="momoProviderOptions"
-                value-key="value"
-                placeholder="Select provider"
-                search-input
+        <div class="space-y-7">
+          <section class="space-y-6 rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm">
+            <div class="space-y-2">
+              <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Method details</h3>
+              <p class="text-sm text-slate-600">Give this payout option a friendly name and specify how clients should pay you.</p>
+            </div>
+            <div class="grid gap-5 sm:grid-cols-2">
+              <UFormGroup
+                label="Label"
+                name="label"
+                required
+                description="Shown across invoices and reminders"
+                :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
+              >
+                <UInput v-model="paymentMethodFormState.label" placeholder="Primary Paystack" />
+              </UFormGroup>
+              <UFormGroup
+                label="Provider"
+                name="provider"
+                description="Pick the channel your client sees"
+                :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
+              >
+                <USelectMenu
+                  v-model="paymentMethodFormState.provider"
+                  :items="momoProviderOptions"
+                  value-key="value"
+                  placeholder="Select provider"
+                  search-input
+                />
+              </UFormGroup>
+              <UFormGroup
+                label="Account number"
+                name="accountNumber"
+                description="Phone, bank number or Paystack reference"
+                class="sm:col-span-2"
+                :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
+              >
+                <UInput v-model="paymentMethodFormState.accountNumber" placeholder="233200000000" />
+              </UFormGroup>
+              <UFormGroup
+                label="Payable to"
+                name="accountName"
+                description="Recipient name your client should use"
+                class="sm:col-span-2"
+                :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
+              >
+                <UInput v-model="paymentMethodFormState.accountName" placeholder="Business or account name" />
+              </UFormGroup>
+            </div>
+          </section>
+
+          <section class="space-y-6 rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm">
+            <div class="space-y-2">
+              <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Instructions & defaults</h3>
+              <p class="text-sm text-slate-600">Add any payout notes and choose whether future invoices use this automatically.</p>
+            </div>
+            <UFormGroup
+              label="Instructions"
+              name="instructions"
+              description="Optional guidance shown on invoices"
+              :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
+            >
+              <UTextarea
+                v-model="paymentMethodFormState.instructions"
+                rows="4"
+                class="min-h-[120px]"
+                placeholder="Optional instructions, e.g. reference or bank branch"
               />
             </UFormGroup>
-            <UFormGroup label="Account number" name="accountNumber">
-              <UInput v-model="paymentMethodFormState.accountNumber" placeholder="233200000000" />
-            </UFormGroup>
-          </div>
-          <UFormGroup label="Payable to" name="accountName">
-            <UInput v-model="paymentMethodFormState.accountName" placeholder="Business or account name" />
-          </UFormGroup>
-          <UFormGroup label="Instructions" name="instructions">
-            <UTextarea
-              v-model="paymentMethodFormState.instructions"
-              rows="3"
-              placeholder="Optional instructions, e.g. reference or bank branch"
-            />
-          </UFormGroup>
-          <div class="flex items-center justify-between gap-3 rounded-xl border border-gray-100 px-3 py-2">
-            <div>
-              <p class="text-sm font-medium text-gray-700">Set as default</p>
-              <p class="text-xs text-gray-500">New invoices will auto-fill with this method.</p>
+            <div class="flex flex-wrap items-center gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-4">
+              <div class="space-y-1">
+                <p class="text-sm font-semibold text-emerald-700">Set as default</p>
+                <p class="text-xs text-emerald-600">New invoices will auto-fill with this method until you choose another.</p>
+              </div>
+              <UToggle v-model="paymentMethodFormState.isDefault" class="ml-auto" />
             </div>
-            <UToggle v-model="paymentMethodFormState.isDefault" />
-          </div>
+          </section>
         </div>
       </UForm>
     </template>
