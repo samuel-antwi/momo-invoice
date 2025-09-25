@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch, useId } from "vue";
+import { computed, nextTick, reactive, ref, watch, useId } from "vue";
 import { z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui/dist/runtime/types";
 
@@ -28,10 +28,33 @@ const payableToFieldId = useId();
 const paymentInstructionsFieldId = useId();
 const notesFieldId = useId();
 
-const { createInvoice } = useInvoices();
+const route = useRoute();
+const { invoices, createInvoice, editInvoice, refresh } = useInvoices();
 const { clients, createClient } = useClients();
 const { paymentMethods: savedPaymentMethods, defaultMethod, createPaymentMethod } = usePaymentMethods();
 const { profile } = useSession();
+const isInitialising = ref(false);
+
+const editInvoiceId = computed(() => {
+  const paramId = (route.params as { id?: string }).id;
+  if (typeof paramId === "string" && route.path.includes("/edit")) {
+    return paramId;
+  }
+  const queryId = route.query.edit;
+  const normalize = (value?: string) => {
+    if (!value || value === "undefined" || value.trim() === "") return undefined;
+    return value;
+  };
+  if (typeof queryId === "string") return normalize(queryId);
+  if (Array.isArray(queryId)) return normalize(queryId[0]);
+  return undefined;
+});
+
+const isEditMode = computed(() => Boolean(editInvoiceId.value));
+
+const editingInvoice = computed(() =>
+  editInvoiceId.value ? invoices.value.find((invoice) => invoice.id === editInvoiceId.value) : undefined,
+);
 
 const momoProviderOptions = [
   { label: "MTN Mobile Money (Paystack)", value: "mtn" },
@@ -79,14 +102,45 @@ const schema = z.object({
       }
       return undefined;
     }),
-  notes: z.string().max(2000).optional().nullable().transform((value) => value?.trim() || undefined),
+  notes: z
+    .string()
+    .max(2000)
+    .optional()
+    .nullable()
+    .transform((value) => {
+      if (value === null) return null;
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        return trimmed === "" ? null : trimmed;
+      }
+      return undefined;
+    }),
   paymentInstructions: z
     .string()
     .max(2000)
     .optional()
     .nullable()
-    .transform((value) => value?.trim() || undefined),
-  payableTo: z.string().max(255).optional().nullable().transform((value) => value?.trim() || undefined),
+    .transform((value) => {
+      if (value === null) return null;
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        return trimmed === "" ? null : trimmed;
+      }
+      return undefined;
+    }),
+  payableTo: z
+    .string()
+    .max(255)
+    .optional()
+    .nullable()
+    .transform((value) => {
+      if (value === null) return null;
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        return trimmed === "" ? null : trimmed;
+      }
+      return undefined;
+    }),
   lineItems: z.array(lineItemSchema).min(1, "Add at least one line item"),
 });
 
@@ -176,6 +230,44 @@ const state = reactive<FormInput>({
   ],
 });
 
+const formatDateInput = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+};
+
+const populateStateFromInvoice = (invoice: InvoiceRecord) => {
+  isInitialising.value = true;
+  state.clientId = invoice.clientId;
+  state.issueDate = formatDateInput(invoice.issueDate);
+  state.dueDate = formatDateInput(invoice.dueDate ?? null);
+  state.currency = (invoice.currency ?? profile.value.currency) || "GHS";
+  state.paymentMethodId = invoice.paymentMethodId ?? "";
+  state.notes = invoice.notes ?? "";
+  state.paymentInstructions = invoice.paymentInstructions ?? "";
+  state.payableTo = invoice.payableTo ?? "";
+  state.lineItems = invoice.lineItems.map((item) => ({
+    description: item.description,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    taxRate: item.taxRate !== undefined ? Number(item.taxRate) * 100 : undefined,
+    discount: item.discount ?? undefined,
+  }));
+  if (state.lineItems.length === 0) {
+    state.lineItems.push({
+      description: "",
+      quantity: 1,
+      unitPrice: 0,
+      taxRate: undefined,
+      discount: undefined,
+    });
+  }
+  nextTick(() => {
+    isInitialising.value = false;
+  });
+};
+
 const clientOptions = computed(() =>
   clients.value.map((client) => ({
     label: client.fullName,
@@ -197,9 +289,47 @@ const selectedPaymentMethod = computed(() =>
   savedPaymentMethods.value.find((method) => method.id === state.paymentMethodId),
 );
 
+const hasInitialisedEdit = ref(false);
+
+watch(
+  editInvoiceId,
+  async (id) => {
+    if (!id) {
+      hasInitialisedEdit.value = false;
+      return;
+    }
+    hasInitialisedEdit.value = false;
+    if (!editingInvoice.value) {
+      await refresh();
+    }
+  },
+  { immediate: true },
+);
+
+const headerTagline = computed(() => (isEditMode.value ? "Edit invoice" : "New invoice"));
+const headerTitle = computed(() => (isEditMode.value ? "Update invoice" : "Create invoice"));
+const primaryActionLabel = computed(() => (isEditMode.value ? "Update invoice" : "Save invoice"));
+const cancelLink = computed(() =>
+  isEditMode.value && editInvoiceId.value ? `/app/invoices/${editInvoiceId.value}` : "/app/invoices",
+);
+const isFormReady = computed(() => !isEditMode.value || hasInitialisedEdit.value);
+
+watch(
+  editingInvoice,
+  (invoice) => {
+    if (!isEditMode.value) return;
+    if (invoice && !hasInitialisedEdit.value) {
+      populateStateFromInvoice(invoice);
+      hasInitialisedEdit.value = true;
+    }
+  },
+  { immediate: true },
+);
+
 watch(
   () => profile.value.currency,
   (currency) => {
+    if (isEditMode.value || isInitialising.value) return;
     state.currency = currency || "GHS";
   },
   { immediate: true },
@@ -236,7 +366,8 @@ const applyPaymentMethodDefaults = (method?: PaymentMethod | null) => {
 watch(
   defaultMethod,
   (method) => {
-    if (!method) return;
+    if (!method || isInitialising.value) return;
+    if (isEditMode.value && state.paymentMethodId && state.paymentMethodId !== "") return;
     if (!state.paymentMethodId || state.paymentMethodId === "") {
       state.paymentMethodId = method.id;
       applyPaymentMethodDefaults(method);
@@ -248,7 +379,7 @@ watch(
 watch(
   () => state.paymentMethodId,
   (id) => {
-    if (!id) return;
+    if (!id || isInitialising.value) return;
     const method = savedPaymentMethods.value.find((item) => item.id === id);
     applyPaymentMethodDefaults(method);
   },
@@ -317,23 +448,60 @@ const handleSubmit = async (event: FormSubmitEvent<FormSubmit>) => {
       throw new Error("Issue date is invalid");
     }
 
+    const lineItemsPayload = event.data.lineItems.map((item) => ({
+      description: item.description.trim(),
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.unitPrice),
+      taxRate: item.taxRate !== undefined ? Number(item.taxRate) / 100 : undefined,
+      discount: item.discount !== undefined ? Number(item.discount) : undefined,
+    }));
+
+    const dueDateIso = toIsoString(event.data.dueDate ?? null);
+    const notesValue = event.data.notes === undefined ? undefined : event.data.notes;
+    const instructionsValue = event.data.paymentInstructions === undefined ? undefined : event.data.paymentInstructions;
+    const payableToValue = event.data.payableTo === undefined ? undefined : event.data.payableTo;
+
+    if (isEditMode.value) {
+      const invoice = editingInvoice.value;
+      if (!invoice) {
+        throw new Error("Invoice not found");
+      }
+
+      const editPayload = {
+        clientId: event.data.clientId,
+        issueDate,
+        dueDate: dueDateIso,
+        currency: activeCurrency.value,
+        paymentMethodId: event.data.paymentMethodId ?? null,
+        notes: notesValue,
+        paymentInstructions: instructionsValue,
+        payableTo: payableToValue,
+        lineItems: lineItemsPayload,
+      } as const;
+
+      const updated = await editInvoice(invoice.id, editPayload);
+
+      toast.add({
+        title: "Invoice updated",
+        description: `Invoice ${updated.invoiceNumber} has been saved.`,
+        color: "green",
+      });
+
+      await router.push(`/app/invoices/${updated.id}`);
+      return;
+    }
+
     const payload: CreateInvoicePayload = {
       clientId: event.data.clientId,
       issueDate,
-      dueDate: toIsoString(event.data.dueDate ?? null),
+      dueDate: dueDateIso,
       status: "draft",
       currency: activeCurrency.value,
-      paymentMethodId: event.data.paymentMethodId,
-      notes: event.data.notes ?? undefined,
-      paymentInstructions: event.data.paymentInstructions ?? undefined,
-      payableTo: event.data.payableTo ?? undefined,
-      lineItems: event.data.lineItems.map((item) => ({
-        description: item.description.trim(),
-        quantity: Number(item.quantity),
-        unitPrice: Number(item.unitPrice),
-        taxRate: item.taxRate !== undefined ? Number(item.taxRate) / 100 : undefined,
-        discount: item.discount !== undefined ? Number(item.discount) : undefined,
-      })),
+      paymentMethodId: event.data.paymentMethodId === null ? undefined : event.data.paymentMethodId,
+      notes: notesValue,
+      paymentInstructions: instructionsValue,
+      payableTo: payableToValue,
+      lineItems: lineItemsPayload,
     };
 
     const created = await createInvoice(payload);
@@ -503,22 +671,29 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
     <section class="card rounded-3xl p-4 sm:p-8">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="space-y-2">
-          <p class="text-sm font-bold uppercase tracking-wider text-blue-600">New invoice</p>
-          <h1 class="text-3xl font-bold text-gray-900">Create invoice</h1>
-          <p class="text-sm text-gray-600">Capture the essentials, send the link, and let Paystack handle the mobile money collection.</p>
+          <p class="text-sm font-bold uppercase tracking-wider text-blue-600">{{ headerTagline }}</p>
+          <h1 class="text-3xl font-bold text-gray-900">{{ headerTitle }}</h1>
+          <p class="text-sm text-gray-600">
+            {{
+              isEditMode
+                ? 'Update invoice details and resend the link if anything has changed.'
+                : 'Capture the essentials, send the link, and let Paystack handle the mobile money collection.'
+            }}
+          </p>
         </div>
         <div class="flex gap-3">
-          <UButton variant="outline" color="gray" :to="'/app/invoices'">
+          <UButton variant="outline" color="gray" :to="cancelLink">
             Cancel
           </UButton>
           <UButton
             color="primary"
             icon="i-heroicons-check"
             :loading="isSubmitting"
+            :disabled="!isFormReady"
             type="submit"
             :form="formId"
           >
-            Save invoice
+            {{ primaryActionLabel }}
           </UButton>
         </div>
       </div>
@@ -526,7 +701,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr),minmax(0,1fr)]">
       <UCard class="rounded-3xl p-4 sm:p-6">
-        <UForm :id="formId" :schema="schema" :state="state" @submit="handleSubmit">
+        <UForm v-if="isFormReady" :id="formId" :schema="schema" :state="state" @submit="handleSubmit">
           <div class="space-y-8">
             <div class="grid gap-6 sm:grid-cols-2">
               <div class="sm:col-span-2 flex flex-col gap-2">
@@ -780,6 +955,9 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
             </div>
           </div>
         </UForm>
+        <div v-else class="py-12 text-center text-sm text-gray-500">
+          Loading invoice details…
+        </div>
       </UCard>
 
       <UCard class="rounded-3xl p-4 sm:p-6">

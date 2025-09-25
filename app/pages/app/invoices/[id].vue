@@ -257,6 +257,12 @@ const goBack = () => router.push("/app/invoices");
 
 const isInitializingPayment = ref(false);
 
+const canEditInvoice = computed(() =>
+  invoice.value ? ["draft", "sent"].includes(invoice.value.status) : false,
+);
+
+const editInvoiceLink = computed(() => (invoice.value ? `/app/invoices/new?edit=${invoice.value.id}` : undefined));
+
 const launchPaystackPayment = async () => {
   if (!invoice.value) return;
 
@@ -313,6 +319,15 @@ const updateStatus = async (id: string, status: InvoiceStatus) => {
   }
 };
 
+const markInvoiceShared = async () => {
+  if (!invoice.value) return;
+  try {
+    await markShared(invoice.value.id);
+  } catch (error) {
+    console.error("Failed to record invoice share", error);
+  }
+};
+
 
 const copyShareLink = async () => {
   if (!invoicePublicUrl.value) {
@@ -327,6 +342,7 @@ const copyShareLink = async () => {
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(invoicePublicUrl.value);
+      await markInvoiceShared();
       toast.add({
         title: "Link copied",
         description: "Invoice share link is ready to paste into WhatsApp or SMS.",
@@ -335,6 +351,8 @@ const copyShareLink = async () => {
       return;
     }
   } catch (error) {}
+
+  await markInvoiceShared();
 
   toast.add({
     title: "Copy this link",
@@ -356,6 +374,7 @@ const copyPdfLink = async () => {
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(invoicePublicPdfUrl.value);
+      await markInvoiceShared();
       toast.add({
         title: "PDF link copied",
         description: "Share the PDF invoice with your client.",
@@ -364,6 +383,8 @@ const copyPdfLink = async () => {
       return;
     }
   } catch (error) {}
+
+  await markInvoiceShared();
 
   toast.add({
     title: "PDF link",
@@ -424,6 +445,16 @@ const copyPdfLink = async () => {
         <div class="glass-panel min-w-0 rounded-3xl p-5 sm:p-6">
           <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Quick actions</h3>
           <div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            <UButton
+              v-if="canEditInvoice && editInvoiceLink"
+              color="primary"
+              variant="soft"
+              class="w-full justify-center whitespace-normal"
+              icon="i-heroicons-pencil-square"
+              :to="editInvoiceLink"
+            >
+              Edit invoice
+            </UButton>
             <UButton
               v-for="action in statusActions"
               :key="action.label"

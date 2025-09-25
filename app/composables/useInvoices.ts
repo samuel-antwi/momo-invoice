@@ -122,8 +122,8 @@ export const useInvoices = () => {
     invoices.value = [invoice, ...invoices.value];
   };
 
-  const updateInvoice = (id: string, patch: Partial<InvoiceRecord>) => {
-    invoices.value = invoices.value.map((invoice) => (invoice.id === id ? { ...invoice, ...patch } : invoice));
+  const updateInvoice = (updated: InvoiceRecord) => {
+    invoices.value = invoices.value.map((invoice) => (invoice.id === updated.id ? updated : invoice));
   };
 
   const removeInvoice = (id: string) => {
@@ -146,6 +146,42 @@ export const useInvoices = () => {
     return response.invoice;
   };
 
+  type EditInvoicePayload = {
+    status?: InvoiceStatus;
+    lastSharedAt?: string;
+    clientId?: string;
+    issueDate?: string;
+    dueDate?: string | null;
+    currency?: string;
+    paymentMethodId?: string | null;
+    notes?: string | null;
+    paymentInstructions?: string | null;
+    payableTo?: string | null;
+    lineItems?: Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      taxRate?: number;
+      discount?: number;
+    }>;
+  };
+
+  const editInvoice = async (id: string, payload: EditInvoicePayload) => {
+    const response = await $fetch<{ invoice: InvoiceRecord }>(`/api/invoices/${id}`, {
+      method: "PATCH",
+      body: payload,
+    });
+
+    if (!response?.invoice) {
+      throw new Error("Failed to update invoice");
+    }
+
+    updateInvoice(response.invoice);
+    await refresh();
+
+    return response.invoice;
+  };
+
   return {
     invoices,
     summary: computed(() => summary.value),
@@ -161,5 +197,6 @@ export const useInvoices = () => {
     markPaid,
     markShared,
     createInvoice,
+    editInvoice,
   };
 };
