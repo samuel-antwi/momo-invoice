@@ -1,11 +1,11 @@
 import os from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import { createRequire } from "node:module";
 
 import PdfPrinter from "pdfmake";
 
 import { buildInvoiceDocDefinition, type InvoicePdfTemplateContext } from "./buildInvoiceDocDefinition";
+import { loadPdfmakeVfs } from "./resolvePdfmakeFonts";
 
 export interface GenerateInvoicePdfOptions extends InvoicePdfTemplateContext {}
 
@@ -14,8 +14,7 @@ let fontDescriptorsPromise: Promise<Record<string, { normal: string; bold: strin
 const prepareFonts = async () => {
   if (!fontDescriptorsPromise) {
     fontDescriptorsPromise = (async () => {
-      const require = createRequire(import.meta.url);
-      const vfs: Record<string, string> = require("pdfmake/build/vfs_fonts.js");
+      const vfs = loadPdfmakeVfs();
 
       const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pdfmake-fonts-"));
 
