@@ -299,7 +299,9 @@ const emailShareUrl = computed(() => {
   return `mailto:${client.value.email}?subject=${encodedEmailSubject.value}&body=${encodedShareMessage.value}`;
 });
 
-const goBack = () => router.push("/app/invoices");
+const goBack = () => {
+  router.push("/app/invoices");
+};
 
 const isInitializingPayment = ref(false);
 
@@ -319,7 +321,7 @@ const launchPaystackPayment = async () => {
       title: "Invoice already paid",
       description:
         "This invoice is already marked as paid, so there is no active Paystack checkout link.",
-      color: "amber",
+      color: "warning",
     });
     return;
   }
@@ -348,7 +350,7 @@ const launchPaystackPayment = async () => {
       title: "Unable to launch Paystack checkout",
       description:
         providerMessage || fallback || "Please try again in a few minutes.",
-      color: "red",
+      color: "error",
     });
   } finally {
     isInitializingPayment.value = false;
@@ -361,7 +363,7 @@ const updateStatus = async (id: string, status: InvoiceStatus) => {
     toast.add({
       title: "Invoice updated",
       description: `Status changed to ${status}.`,
-      color: "green",
+      color: "success",
     });
   } catch (error) {
     const message =
@@ -371,7 +373,7 @@ const updateStatus = async (id: string, status: InvoiceStatus) => {
     toast.add({
       title: "Status update failed",
       description: message,
-      color: "red",
+      color: "error",
     });
   }
 };
@@ -391,7 +393,7 @@ const copyShareLink = async () => {
       title: "Share link unavailable",
       description:
         "We couldn't build a public invoice link yet. Refresh the page and try again.",
-      color: "amber",
+      color: "warning",
     });
     return;
   }
@@ -404,7 +406,7 @@ const copyShareLink = async () => {
         title: "Link copied",
         description:
           "Invoice share link is ready to paste into WhatsApp or SMS.",
-        color: "green",
+        color: "success",
       });
       return;
     }
@@ -415,7 +417,7 @@ const copyShareLink = async () => {
   toast.add({
     title: "Copy this link",
     description: invoicePublicUrl.value,
-    color: "gray",
+    color: "neutral",
   });
 };
 
@@ -424,7 +426,7 @@ const copyPdfLink = async () => {
     toast.add({
       title: "PDF link unavailable",
       description: "Generate the invoice PDF first or refresh the page.",
-      color: "amber",
+      color: "warning",
     });
     return;
   }
@@ -436,7 +438,7 @@ const copyPdfLink = async () => {
       toast.add({
         title: "PDF link copied",
         description: "Share the PDF invoice with your client.",
-        color: "green",
+        color: "success",
       });
       return;
     }
@@ -447,327 +449,253 @@ const copyPdfLink = async () => {
   toast.add({
     title: "PDF link",
     description: invoicePublicPdfUrl.value,
-    color: "gray",
+    color: "neutral",
   });
 };
 </script>
 
 <template>
-  <div v-if="invoice" class="flex min-w-0 flex-col gap-6 sm:gap-8">
-    <div class="flex justify-start">
-      <UButton
-        color="gray"
-        variant="ghost"
-        icon="i-heroicons-arrow-left"
-        @click="goBack"
-      >
-        Back
-      </UButton>
-    </div>
-
+  <div
+    v-if="invoice"
+    class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30"
+  >
+    <!-- Mobile Header -->
     <div
-      class="glass-panel flex min-w-0 flex-col gap-4 rounded-3xl p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+      class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200"
     >
-      <div class="space-y-2">
-        <p
-          class="text-xs font-semibold uppercase tracking-[0.35em] text-amber-400"
+      <div class="flex items-center justify-between p-4">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-heroicons-arrow-left"
+          size="sm"
+          @click="goBack"
         >
-          Invoice detail
-        </p>
-        <h2 class="text-xl font-semibold text-slate-900 sm:text-2xl">
-          {{ invoice.invoiceNumber }}
-        </h2>
-        <p class="text-sm text-slate-500">
-          Issued {{ formatDate(invoice.issueDate) }}
-          <span v-if="dueDateDisplay"> • Due {{ dueDateDisplay }}</span>
-        </p>
-      </div>
-      <div class="flex flex-wrap items-center gap-3 sm:justify-end">
-        <InvoiceStatusPill :status="invoice.status" />
+          Back
+        </UButton>
+        <div class="text-center">
+          <h1 class="font-semibold text-slate-900 text-lg">
+            {{ invoice.invoiceNumber }}
+          </h1>
+        </div>
+        <div class="w-16"></div>
+        <!-- Spacer for centered title -->
       </div>
     </div>
 
-    <div
-      class="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.2fr),minmax(0,1fr)]"
-    >
-      <div class="space-y-6 min-w-0">
-        <div class="glass-panel min-w-0 rounded-3xl p-5 sm:p-6">
-          <h3
-            class="text-sm font-semibold uppercase tracking-wide text-slate-500"
-          >
-            Client details
-          </h3>
-          <div class="mt-4 grid gap-5 md:grid-cols-2">
-            <div>
-              <p class="text-xs text-slate-500">Client name</p>
-              <p class="text-sm font-semibold text-slate-900">
-                {{ client?.fullName }}
+    <div class="pb-24">
+      <!-- Status Hero Section -->
+      <div
+        class="mt-6 relative overflow-hidden rounded-3xl"
+        :class="[
+          isPaid
+            ? 'bg-gradient-to-r from-emerald-500 to-emerald-600'
+            : 'bg-gradient-to-r from-amber-500 to-orange-500',
+        ]"
+      >
+        <div class="absolute inset-0 bg-black/10"></div>
+        <div class="relative p-6 text-white">
+          <div class="flex items-center justify-between mb-4">
+            <InvoiceStatusPill
+              :status="invoice.status"
+              class="bg-white/20 backdrop-blur-sm"
+            />
+            <div class="text-right">
+              <p class="text-sm opacity-90">
+                {{ isPaid ? "Paid on" : "Due on" }}
+              </p>
+              <p class="font-semibold">
+                {{ isPaid ? paidAtDisplay : dueDateDisplay }}
               </p>
             </div>
+          </div>
+
+          <div class="text-center py-4">
+            <p class="text-sm opacity-90 mb-2">
+              {{ isPaid ? "Amount Collected" : "Amount Due" }}
+            </p>
+            <p class="text-4xl font-bold">
+              {{
+                totals
+                  ? formatCurrency(totals.grandTotal, invoiceCurrency)
+                  : "-"
+              }}
+            </p>
+          </div>
+
+          <!-- Primary Actions -->
+          <div class="flex gap-3 mt-6">
+            <UButton
+              v-if="!isPaid"
+              color="neutral"
+              class="flex-1 bg-white text-amber-600 hover:bg-white/90"
+              :loading="isInitializingPayment"
+              @click="launchPaystackPayment"
+            >
+              <template #leading>
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M4 7c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V7zm2 0v10h12V7H6zm2 2h8v2H8V9zm0 3h6v1H8v-1z"/>
+                </svg>
+              </template>
+              Collect Payment
+            </UButton>
+
+            <UButton
+              v-if="whatsappShareUrl"
+              color="neutral"
+              variant="outline"
+              class="flex-1 border-white/30 text-white hover:bg-white/10"
+              :href="whatsappShareUrl"
+              target="_blank"
+              @click="markInvoiceShared"
+            >
+              <template #leading>
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.488"/>
+                </svg>
+              </template>
+              Send via WhatsApp
+            </UButton>
+
+            <UButton
+              v-if="!whatsappShareUrl"
+              color="neutral"
+              variant="outline"
+              class="flex-1 border-white/30 text-white hover:bg-white/10"
+              @click="copyShareLink"
+            >
+              <template #leading>
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                </svg>
+              </template>
+              Share Link
+            </UButton>
+          </div>
+        </div>
+      </div>
+
+      <!-- Client Info Card -->
+      <div
+        class="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+      >
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center"
+            >
+              <span class="text-blue-600 font-semibold text-sm">
+                {{ (client?.fullName || "").charAt(0).toUpperCase() }}
+              </span>
+            </div>
             <div>
-              <p class="text-xs text-slate-500">Business</p>
-              <p class="text-sm font-semibold text-slate-900">
+              <h3 class="font-semibold text-slate-900">
+                {{ client?.fullName }}
+              </h3>
+              <p class="text-sm text-slate-500">
                 {{ client?.businessName || "Individual client" }}
               </p>
             </div>
+          </div>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <div
+            v-if="client?.whatsappNumber || client?.phone"
+            class="flex items-center gap-3"
+          >
+            <div
+              class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center"
+            >
+              📱
+            </div>
             <div>
-              <p class="text-xs text-slate-500">WhatsApp</p>
-              <p class="text-sm text-slate-900">
+              <p class="text-sm text-slate-500">WhatsApp/Phone</p>
+              <p class="font-medium text-slate-900">
                 {{ client?.whatsappNumber || client?.phone }}
               </p>
             </div>
+          </div>
+
+          <div v-if="client?.email" class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center"
+            >
+              📧
+            </div>
             <div>
-              <p class="text-xs text-slate-500">Email</p>
-              <p class="text-sm text-slate-900">
-                {{ client?.email || "Not provided" }}
+              <p class="text-sm text-slate-500">Email</p>
+              <p class="font-medium text-slate-900">{{ client?.email }}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div
+              class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center"
+            >
+              📅
+            </div>
+            <div>
+              <p class="text-sm text-slate-500">Invoice Date</p>
+              <p class="font-medium text-slate-900">
+                {{ formatDate(invoice.issueDate) }}
               </p>
             </div>
           </div>
         </div>
-
-        <div class="glass-panel min-w-0 rounded-3xl p-5 sm:p-6">
-          <h3
-            class="text-sm font-semibold uppercase tracking-wide text-slate-500"
-          >
-            Quick actions
-          </h3>
-          <div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            <UButton
-              v-if="canEditInvoice && editInvoiceLink"
-              color="primary"
-              variant="soft"
-              class="w-full justify-center whitespace-normal"
-              icon="i-heroicons-pencil-square"
-              :to="editInvoiceLink"
-            >
-              Edit invoice
-            </UButton>
-            <UButton
-              v-for="action in statusActions"
-              :key="action.label"
-              color="gray"
-              variant="ghost"
-              class="w-full justify-center whitespace-normal"
-              @click="action.action()"
-            >
-              {{ action.label }}
-            </UButton>
-            <UButton
-              color="gray"
-              variant="ghost"
-              class="w-full justify-center whitespace-normal"
-              :href="whatsappShareUrl"
-              :disabled="!whatsappShareUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              :title="
-                !whatsappShareUrl
-                  ? 'Add a client WhatsApp or phone number to share instantly.'
-                  : undefined
-              "
-              @click="markInvoiceShared"
-            >
-              Share via WhatsApp
-            </UButton>
-            <UButton
-              color="gray"
-              variant="ghost"
-              class="w-full justify-center whitespace-normal"
-              icon="i-heroicons-link"
-              :disabled="!invoicePublicUrl"
-              @click="copyShareLink"
-            >
-              Copy share link
-            </UButton>
-            <UButton
-              color="gray"
-              variant="ghost"
-              class="w-full justify-center whitespace-normal"
-              icon="i-heroicons-document-text"
-              :href="invoicePdfUrl"
-              :disabled="!invoicePdfUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Download PDF
-            </UButton>
-            <UButton
-              color="gray"
-              variant="ghost"
-              class="w-full justify-center whitespace-normal"
-              icon="i-heroicons-document-duplicate"
-              :disabled="!invoicePublicPdfUrl"
-              @click="copyPdfLink"
-            >
-              Copy PDF link
-            </UButton>
-            <UButton
-              color="gray"
-              variant="ghost"
-              class="w-full justify-center whitespace-normal"
-              :href="invoicePublicUrl"
-              :disabled="!invoicePublicUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open client view
-            </UButton>
-            <UButton
-              color="gray"
-              variant="ghost"
-              class="w-full justify-center whitespace-normal"
-              :href="smsShareUrl"
-              :disabled="!smsShareUrl"
-            >
-              Send SMS
-            </UButton>
-            <UButton
-              color="gray"
-              variant="ghost"
-              class="w-full justify-center whitespace-normal"
-              :href="emailShareUrl"
-              :disabled="!emailShareUrl"
-            >
-              Email invoice
-            </UButton>
-            <UButton
-              v-if="!isPaid"
-              color="primary"
-              icon="i-heroicons-credit-card"
-              :loading="isInitializingPayment"
-              class="w-full justify-center whitespace-normal"
-              @click="launchPaystackPayment"
-            >
-              Collect via Paystack
-            </UButton>
-          </div>
-        </div>
-
-        <div v-if="!isPaid" class="glass-panel min-w-0 rounded-3xl p-5 sm:p-6">
-          <h3
-            class="text-sm font-semibold uppercase tracking-wide text-slate-500"
-          >
-            Paystack checkout
-          </h3>
-          <p class="mt-2 text-sm text-slate-600">
-            Launch a secure Paystack payment link and share it with your client.
-            Once Paystack confirms the transfer, the invoice status will
-            automatically flip to paid and appear on your dashboard.
-          </p>
-          <div
-            class="mt-4 rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4 text-sm text-amber-700"
-          >
-            <p class="font-semibold">Amount due</p>
-            <p class="mt-1 text-lg font-bold">
-              {{
-                totals
-                  ? formatCurrency(totals.grandTotal, invoiceCurrency)
-                  : "-"
-              }}
-            </p>
-          </div>
-          <UButton
-            class="mt-4"
-            color="primary"
-            icon="i-heroicons-arrow-top-right-on-square"
-            :loading="isInitializingPayment"
-            @click="launchPaystackPayment"
-          >
-            Open Paystack checkout
-          </UButton>
-          <p class="mt-3 text-xs text-slate-500">
-            We store the Paystack reference with this invoice so reminders and
-            reconciliation stay in sync.
-          </p>
-        </div>
-
-        <div v-else class="glass-panel min-w-0 rounded-3xl p-5 sm:p-6">
-          <h3
-            class="text-sm font-semibold uppercase tracking-wide text-slate-500"
-          >
-            Payment record
-          </h3>
-          <p class="mt-2 text-sm text-slate-600">
-            This invoice was recorded as paid{{
-              paidAtDisplay ? ` on ${paidAtDisplay}` : ""
-            }}. You can still adjust the status or resend a receipt from the
-            quick actions above.
-          </p>
-          <div
-            class="mt-4 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 text-sm text-emerald-700"
-          >
-            <p class="font-semibold">Amount collected</p>
-            <p class="mt-1 text-lg font-bold">
-              {{
-                totals
-                  ? formatCurrency(totals.grandTotal, invoiceCurrency)
-                  : "-"
-              }}
-            </p>
-          </div>
-          <p class="mt-3 text-xs text-slate-500">
-            Paystack reconciled this payment automatically. Update the status if
-            something looks off.
-          </p>
-        </div>
       </div>
 
-      <div class="space-y-6 min-w-0">
-        <div class="glass-panel min-w-0 rounded-3xl p-5 sm:p-6">
-          <h3
-            class="text-sm font-semibold uppercase tracking-wide text-slate-500"
-          >
-            Line items
+      <!-- Line Items Section -->
+      <div
+        class="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+      >
+        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+          <h3 class="font-semibold text-slate-900 flex items-center gap-2">
+            📝 Invoice Items
           </h3>
+        </div>
+
+        <div class="divide-y divide-slate-100">
           <div
-            class="mt-4 w-full overflow-x-auto rounded-2xl border border-slate-100"
+            v-for="item in invoice.lineItems"
+            :key="item.id"
+            class="p-6 hover:bg-slate-50/50 transition-colors"
           >
-            <table
-              class="min-w-full divide-y divide-slate-100 text-sm sm:min-w-[32rem]"
-            >
-              <thead
-                class="bg-slate-50/80 text-xs uppercase tracking-wide text-slate-500"
-              >
-                <tr>
-                  <th class="px-4 py-3 text-left">Description</th>
-                  <th class="px-4 py-3 text-left">Qty</th>
-                  <th class="px-4 py-3 text-left">Unit price</th>
-                  <th class="px-4 py-3 text-left">Total</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 bg-white/90">
-                <tr v-for="item in invoice.lineItems" :key="item.id">
-                  <td class="px-4 py-3 text-slate-900">
-                    {{ item.description }}
-                  </td>
-                  <td class="px-4 py-3 text-slate-600">{{ item.quantity }}</td>
-                  <td class="px-4 py-3 text-slate-600">
-                    {{ formatCurrency(item.unitPrice, invoiceCurrency) }}
-                  </td>
-                  <td class="px-4 py-3 text-slate-900">
-                    {{
-                      formatCurrency(
-                        item.quantity * item.unitPrice,
-                        invoiceCurrency
-                      )
-                    }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="flex justify-between items-start mb-2">
+              <div class="flex-1 min-w-0 mr-4">
+                <h4 class="font-medium text-slate-900 leading-tight">
+                  {{ item.description }}
+                </h4>
+                <div
+                  class="flex items-center gap-4 mt-2 text-sm text-slate-500"
+                >
+                  <span>Qty: {{ item.quantity }}</span>
+                  <span>×</span>
+                  <span>{{
+                    formatCurrency(item.unitPrice, invoiceCurrency)
+                  }}</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="font-bold text-lg text-slate-900">
+                  {{
+                    formatCurrency(
+                      item.quantity * item.unitPrice,
+                      invoiceCurrency
+                    )
+                  }}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="glass-panel min-w-0 rounded-3xl p-5 sm:p-6">
-          <h3
-            class="text-sm font-semibold uppercase tracking-wide text-slate-500"
-          >
-            Totals
-          </h3>
-          <div class="mt-4 grid gap-3 text-sm text-slate-600 sm:gap-4">
-            <div class="flex items-center justify-between">
-              <span>Subtotal</span>
-              <span class="font-semibold text-slate-900">
+        <!-- Totals Section -->
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200">
+          <div class="space-y-3">
+            <div class="flex justify-between text-sm">
+              <span class="text-slate-600">Subtotal</span>
+              <span class="font-medium text-slate-900">
                 {{
                   totals
                     ? formatCurrency(totals.subtotal, invoiceCurrency)
@@ -775,36 +703,34 @@ const copyPdfLink = async () => {
                 }}
               </span>
             </div>
-            <div class="flex items-center justify-between">
-              <span>Taxes</span>
-              <span class="font-semibold text-slate-900">
-                {{
-                  totals
-                    ? formatCurrency(totals.taxTotal, invoiceCurrency)
-                    : "-"
-                }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span>Discounts</span>
-              <span class="font-semibold text-slate-900">
-                {{
-                  totals
-                    ? formatCurrency(totals.discountTotal, invoiceCurrency)
-                    : "-"
-                }}
-              </span>
-            </div>
+
             <div
-              class="flex items-center justify-between rounded-2xl px-4 py-3"
-              :class="totalsHighlight.containerClass"
+              v-if="totals && totals.taxTotal > 0"
+              class="flex justify-between text-sm"
             >
-              <span class="font-semibold" :class="totalsHighlight.titleClass">{{
-                totalsHighlight.label
-              }}</span>
+              <span class="text-slate-600">Taxes</span>
+              <span class="font-medium text-slate-900">
+                {{ formatCurrency(totals.taxTotal, invoiceCurrency) }}
+              </span>
+            </div>
+
+            <div
+              v-if="totals && totals.discountTotal > 0"
+              class="flex justify-between text-sm"
+            >
+              <span class="text-slate-600">Discounts</span>
+              <span class="font-medium text-slate-900">
+                -{{ formatCurrency(totals.discountTotal, invoiceCurrency) }}
+              </span>
+            </div>
+
+            <div
+              class="pt-3 border-t border-slate-200 flex justify-between items-center"
+            >
+              <span class="font-semibold text-slate-900">Total</span>
               <span
-                class="text-lg font-semibold"
-                :class="totalsHighlight.amountClass"
+                class="text-2xl font-bold"
+                :class="[isPaid ? 'text-emerald-600' : 'text-amber-600']"
               >
                 {{
                   totals
@@ -816,23 +742,237 @@ const copyPdfLink = async () => {
           </div>
         </div>
       </div>
+
+      <!-- Action Grid - Beautiful Cards -->
+      <div class="mt-6 space-y-4">
+        <!-- Primary Actions Row -->
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Edit Invoice -->
+          <div
+            v-if="canEditInvoice && editInvoiceLink"
+            class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-5 shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95"
+          >
+            <NuxtLink :to="editInvoiceLink" class="block">
+              <div class="absolute top-3 right-3">
+                <div
+                  class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"
+                >
+                  <span class="text-white text-lg">✏️</span>
+                </div>
+              </div>
+              <div class="text-white">
+                <h4 class="font-bold text-lg mb-1">Edit Invoice</h4>
+                <p class="text-sm opacity-90">Make changes</p>
+              </div>
+            </NuxtLink>
+          </div>
+
+          <!-- Download PDF -->
+          <div
+            class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-600 to-slate-700 p-5 shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95"
+          >
+            <a
+              :href="invoicePdfUrl"
+              target="_blank"
+              class="block"
+              :class="{ 'pointer-events-none opacity-50': !invoicePdfUrl }"
+            >
+              <div class="absolute top-3 right-3">
+                <div
+                  class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"
+                >
+                  <span class="text-white text-lg">📄</span>
+                </div>
+              </div>
+              <div class="text-white">
+                <h4 class="font-bold text-lg mb-1">Download PDF</h4>
+                <p class="text-sm opacity-90">Save locally</p>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- Share Actions Grid -->
+        <div
+          class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+        >
+          <div
+            class="px-5 py-4 bg-gradient-to-r from-green-50 to-blue-50 border-b border-slate-100"
+          >
+            <h3 class="font-bold text-slate-800 flex items-center gap-2">
+              <span class="text-lg">📤</span> Share with Client
+            </h3>
+          </div>
+
+          <div class="p-5 grid grid-cols-2 gap-3">
+            <!-- WhatsApp - FIRST & MOST IMPORTANT! -->
+            <div
+              v-if="whatsappShareUrl"
+              class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-400 to-green-500 p-4 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95"
+            >
+              <a
+                :href="whatsappShareUrl"
+                target="_blank"
+                class="block"
+                @click="markInvoiceShared"
+              >
+                <div class="text-center text-white">
+                  <div class="text-2xl mb-2">
+                    <svg
+                      viewBox="0 0 24 24"
+                      class="w-6 h-6 mx-auto text-white fill-current"
+                    >
+                      <path
+                        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.097"
+                      />
+                    </svg>
+                  </div>
+                  <div class="font-semibold text-sm">WhatsApp</div>
+                </div>
+              </a>
+            </div>
+
+            <!-- SMS -->
+            <div
+              v-if="smsShareUrl"
+              class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-4 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95"
+            >
+              <a :href="smsShareUrl" class="block">
+                <div class="text-center text-white">
+                  <div class="text-2xl mb-2">💬</div>
+                  <div class="font-semibold text-sm">Send SMS</div>
+                </div>
+              </a>
+            </div>
+
+            <!-- Email -->
+            <div
+              v-if="emailShareUrl"
+              class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-4 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95"
+            >
+              <a :href="emailShareUrl" class="block">
+                <div class="text-center text-white">
+                  <div class="mb-2">
+                    <svg class="w-6 h-6 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                  </div>
+                  <div class="font-semibold text-sm">Send Email</div>
+                </div>
+              </a>
+            </div>
+
+            <!-- Copy Link (fallback if no WhatsApp) -->
+            <div
+              v-if="!whatsappShareUrl"
+              class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 p-4 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              @click="copyShareLink"
+            >
+              <div class="text-center text-white">
+                <div class="mb-2">
+                  <svg class="w-6 h-6 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+                  </svg>
+                </div>
+                <div class="font-semibold text-sm">Copy Link</div>
+              </div>
+            </div>
+
+            <!-- PDF Link -->
+            <div
+              class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 p-4 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              :class="{
+                'opacity-50 pointer-events-none': !invoicePublicPdfUrl,
+              }"
+              @click="copyPdfLink"
+            >
+              <div class="text-center text-white">
+                <div class="mb-2">
+                  <svg class="w-6 h-6 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                  </svg>
+                </div>
+                <div class="font-semibold text-sm">PDF Link</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status & Other Actions -->
+        <div
+          v-if="statusActions.length > 0 || invoicePublicUrl"
+          class="space-y-3"
+        >
+          <!-- Status Actions -->
+          <div
+            v-if="statusActions.length > 0"
+            class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4"
+          >
+            <h4
+              class="font-semibold text-slate-800 mb-3 flex items-center gap-2"
+            >
+              <span class="text-lg">⚙️</span> Update Status
+            </h4>
+            <div class="grid grid-cols-1 gap-2">
+              <button
+                v-for="action in statusActions"
+                :key="action.label"
+                @click="action.action()"
+                class="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg font-medium text-slate-700 transition-colors text-left"
+              >
+                {{ action.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Client View -->
+          <div
+            v-if="invoicePublicUrl"
+            class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-5 shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95"
+          >
+            <a :href="invoicePublicUrl" target="_blank" class="block">
+              <div class="absolute top-3 right-3">
+                <div
+                  class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"
+                >
+                  <span class="text-white text-lg">🔍</span>
+                </div>
+              </div>
+              <div class="text-white">
+                <h4 class="font-bold text-lg mb-1">Client View</h4>
+                <p class="text-sm opacity-90">Preview & pay</p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+  <!-- Invoice Not Found State -->
   <div
-    class="glass-panel flex flex-col items-center gap-4 rounded-3xl p-8 text-center sm:p-10"
     v-else
+    class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 flex items-center justify-center px-4"
   >
-    <p class="text-lg font-semibold text-slate-900">Invoice not found</p>
-    <p class="text-sm text-slate-500">
-      The invoice you are looking for might have been removed.
-    </p>
-    <UButton
-      color="gray"
-      variant="soft"
-      class="w-full justify-center sm:w-auto"
-      @click="goBack"
-    >
-      Back to invoices
-    </UButton>
+    <div class="bg-white rounded-3xl shadow-lg p-8 text-center max-w-md w-full">
+      <div
+        class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6"
+      >
+        <span class="text-3xl">📄</span>
+      </div>
+
+      <h2 class="text-xl font-bold text-slate-900 mb-2">Invoice not found</h2>
+      <p class="text-slate-600 mb-6">
+        The invoice you're looking for might have been moved or deleted.
+      </p>
+
+      <UButton
+        color="info"
+        class="w-full justify-center py-3"
+        icon="i-heroicons-arrow-left"
+        @click="goBack"
+      >
+        Back to Invoices
+      </UButton>
+    </div>
   </div>
 </template>

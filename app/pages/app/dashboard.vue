@@ -114,98 +114,129 @@ const invoiceTotal = (invoiceId: string) => {
         </div>
 
         <div class="card-body">
-          <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <!-- Overdue Section -->
-            <div>
-              <h4 class="text-sm font-semibold text-red-600 mb-3">Overdue</h4>
-
-              <div v-if="safeOverdueInvoices.length" class="space-y-3">
-                <div
-                  v-for="invoice in safeOverdueInvoices"
-                  :key="invoice.id"
-                  class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+          <!-- Combined Table View for Better Scalability -->
+          <div v-if="safeOverdueInvoices.length || safeInvoicesDueSoon.length" class="overflow-x-auto">
+            <table class="table min-w-full">
+              <thead>
+                <tr>
+                  <th class="text-left">Invoice</th>
+                  <th class="text-left">Client</th>
+                  <th class="text-right">Amount</th>
+                  <th class="text-left">Status</th>
+                  <th class="text-center">Priority</th>
+                  <th class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Overdue Invoices (Higher Priority) -->
+                <tr
+                  v-for="invoice in safeOverdueInvoices.slice(0, 5)"
+                  :key="`overdue_${invoice.id}`"
+                  class="hover:bg-red-50 border-l-4 border-l-red-500"
                 >
-                  <div
-                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2"
-                  >
+                  <td>
                     <div>
-                      <p class="text-sm font-semibold text-gray-900">
+                      <NuxtLink
+                        :to="`/app/invoices/${invoice.id}`"
+                        class="font-semibold text-blue-600 hover:text-blue-700"
+                      >
                         {{ invoice.invoiceNumber }}
-                      </p>
-                      <p class="text-xs text-red-600">
-                        Due {{ formatDate(invoice.dueDate) }} •
+                      </NuxtLink>
+                      <p class="text-xs text-red-600 mt-1">
                         {{ invoice.daysOverdue }} days overdue
                       </p>
                     </div>
-                    <InvoiceStatusPill :status="invoice.status" />
-                  </div>
+                  </td>
+                  <td class="text-gray-900">{{ clientName(invoice.clientId) }}</td>
+                  <td class="text-right font-semibold">
+                    {{ formatCurrency(invoiceTotal(invoice.id), profile.currency) }}
+                  </td>
+                  <td><InvoiceStatusPill :status="invoice.status" /></td>
+                  <td class="text-center">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      🚨 OVERDUE
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <div class="flex items-center justify-center gap-1">
+                      <UButton
+                        :to="`/app/invoices/${invoice.id}`"
+                        size="xs"
+                        color="red"
+                        variant="outline"
+                      >
+                        Send reminder
+                      </UButton>
+                    </div>
+                  </td>
+                </tr>
 
-                  <div class="flex flex-col sm:flex-row gap-2 mt-3">
-                    <UButton
-                      :to="`/app/invoices/${invoice.id}`"
-                      size="xs"
-                      variant="outline"
-                      class="text-red-600 border-red-200 hover:bg-red-50"
-                    >
-                      Send reminder
-                    </UButton>
-                    <UButton
-                      :to="`/app/invoices/${invoice.id}`"
-                      size="xs"
-                      variant="ghost"
-                    >
-                      Mark paid
-                    </UButton>
-                  </div>
-                </div>
-              </div>
-
-              <div v-else class="text-center py-8 text-gray-500">
-                <p class="text-sm">No overdue invoices</p>
-              </div>
-            </div>
-
-            <!-- Due Soon Section -->
-            <div>
-              <h4 class="text-sm font-semibold text-amber-600 mb-3">
-                Due in 3 days
-              </h4>
-
-              <div v-if="safeInvoicesDueSoon.length" class="space-y-3">
-                <div
-                  v-for="invoice in safeInvoicesDueSoon"
-                  :key="`soon_${invoice.id}`"
-                  class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                <!-- Due Soon Invoices -->
+                <tr
+                  v-for="invoice in safeInvoicesDueSoon.slice(0, 5)"
+                  :key="`due_soon_${invoice.id}`"
+                  class="hover:bg-amber-50 border-l-4 border-l-amber-400"
                 >
-                  <div
-                    class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-                  >
+                  <td>
                     <div>
-                      <p class="text-sm font-semibold text-gray-900">
+                      <NuxtLink
+                        :to="`/app/invoices/${invoice.id}`"
+                        class="font-semibold text-blue-600 hover:text-blue-700"
+                      >
                         {{ invoice.invoiceNumber }}
-                      </p>
-                      <p class="text-xs text-amber-600">
-                        Due {{ formatDate(invoice.dueDate) }} • in
-                        {{ invoice.daysUntilDue }} days
+                      </NuxtLink>
+                      <p class="text-xs text-amber-600 mt-1">
+                        Due in {{ invoice.daysUntilDue }} days
                       </p>
                     </div>
+                  </td>
+                  <td class="text-gray-900">{{ clientName(invoice.clientId) }}</td>
+                  <td class="text-right font-semibold">
+                    {{ formatCurrency(invoiceTotal(invoice.id), profile.currency) }}
+                  </td>
+                  <td><InvoiceStatusPill :status="invoice.status" /></td>
+                  <td class="text-center">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                      ⚠️ DUE SOON
+                    </span>
+                  </td>
+                  <td class="text-center">
                     <UButton
                       :to="`/app/invoices/${invoice.id}`"
-                      color="gray"
-                      variant="outline"
                       size="xs"
-                      class="w-full sm:w-auto"
+                      color="amber"
+                      variant="outline"
                     >
                       Prep reminder
                     </UButton>
-                  </div>
-                </div>
-              </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
 
-              <div v-else class="text-center py-8 text-gray-500">
-                <p class="text-sm">Nothing due soon</p>
-              </div>
+            <!-- Show More Link if there are additional invoices -->
+            <div
+              v-if="safeOverdueInvoices.length > 5 || safeInvoicesDueSoon.length > 5"
+              class="mt-4 text-center"
+            >
+              <UButton
+                to="/app/invoices?filter=attention"
+                color="gray"
+                variant="outline"
+                size="sm"
+              >
+                Show {{ (safeOverdueInvoices.length - 5) + (safeInvoicesDueSoon.length - 5) }} more invoices needing attention
+              </UButton>
             </div>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else class="text-center py-12">
+            <div class="w-12 h-12 mx-auto mb-4 text-green-500">
+              ✅
+            </div>
+            <p class="text-lg font-semibold text-gray-900 mb-2">All caught up!</p>
+            <p class="text-sm text-gray-600">No invoices need immediate attention.</p>
           </div>
         </div>
       </div>
