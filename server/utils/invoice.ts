@@ -2,7 +2,7 @@ import type { InferSelectModel } from "drizzle-orm";
 
 import type { InvoiceRecord } from "~/types/models";
 
-import { clients, invoiceLineItems, invoices } from "../db/schema";
+import { businesses, clients, invoiceLineItems, invoices, payments } from "../db/schema";
 
 export const parseAmount = (value: unknown) => Number(value ?? 0);
 
@@ -31,6 +31,8 @@ export const computeInvoiceTotals = (items: Array<{
 type InvoiceRow = InferSelectModel<typeof invoices> & {
   client: InferSelectModel<typeof clients>;
   lineItems: InferSelectModel<typeof invoiceLineItems>[];
+  business?: InferSelectModel<typeof businesses>;
+  payments?: InferSelectModel<typeof payments>[];
 };
 
 export const mapInvoiceRow = (invoice: InvoiceRow): InvoiceRecord => {

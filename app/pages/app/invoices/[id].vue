@@ -15,10 +15,24 @@ const { invoices, markPaid, setStatus } = useInvoices();
 const { clients } = useClients();
 const { profile } = useSession();
 const toast = useToast();
+const runtimeConfig = useRuntimeConfig();
+
+const appUrl = ref<string | undefined>(runtimeConfig.public.appUrl?.replace(/\/$/, ""));
+
+if (!appUrl.value && import.meta.client) {
+  appUrl.value = window.location.origin;
+}
 
 const invoice = computed(() => invoices.value.find((item) => item.id === invoiceId.value));
 const client = computed(() => clients.value.find((item) => item.id === invoice.value?.clientId));
 const totals = computed(() => (invoice.value ? calculateInvoiceTotals(invoice.value) : null));
+
+const invoiceCurrency = computed(() => invoice.value?.currency ?? profile.value.currency);
+
+const invoicePublicUrl = computed(() => {
+  if (!invoice.value || !appUrl.value) return undefined;
+  return `${appUrl.value}/invoices/${invoice.value.id}`;
+});
 
 const isPaid = computed(() => invoice.value?.status === "paid");
 
@@ -65,13 +79,21 @@ const statusActions = computed(() => {
 
 const shareMessage = computed(() => {
   if (!invoice.value || !client.value) return "";
-  const amount = totals.value ? formatCurrency(totals.value.grandTotal, profile.value.currency) : "";
+  const amount = totals.value ? formatCurrency(totals.value.grandTotal, invoiceCurrency.value) : "";
+  const link = invoicePublicUrl.value;
+
   if (isPaid.value) {
     const paidOn = paidAtDisplay.value ? ` on ${paidAtDisplay.value}` : "";
-    return `Hi ${client.value.fullName}, thanks for settling invoice ${invoice.value.invoiceNumber}${paidOn}. We've recorded your payment of ${amount}.`;
+    const receiptLine = link ? `\nReceipt: ${link}` : "";
+    return `Hi ${client.value.fullName}, thanks for settling invoice ${invoice.value.invoiceNumber}${paidOn}. We've recorded your payment of ${amount}.${receiptLine}`;
   }
+
   const dueText = dueDateDisplay.value ? ` before ${dueDateDisplay.value}` : "";
-  return `Hi ${client.value.fullName}, here is your invoice ${invoice.value.invoiceNumber} for ${amount}. Pay securely via Paystack${dueText}. Thank you!`;
+  const paymentLine = link
+    ? `Pay securely via Paystack${dueText} here: ${link}`
+    : `Pay securely via Paystack${dueText}.`;
+
+  return `Hi ${client.value.fullName}, here is your invoice ${invoice.value.invoiceNumber} for ${amount}. ${paymentLine}\nThank you!`;
 });
 
 const encodedShareMessage = computed(() => encodeURIComponent(shareMessage.value));
@@ -187,6 +209,37 @@ const launchPaystackPayment = async () => {
     isInitializingPayment.value = false;
   }
 };
+
+const copyShareLink = async () => {
+  if (!invoicePublicUrl.value) {
+    toast.add({
+      title: "Share link unavailable",
+      description: "We couldn't build a public invoice link yet. Refresh the page and try again.",
+      color: "amber",
+    });
+    return;
+  }
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(invoicePublicUrl.value);
+      toast.add({
+        title: "Link copied",
+        description: "Invoice share link is ready to paste into WhatsApp or SMS.",
+        color: "green",
+      });
+      return;
+    }
+  } catch (error) {
+    // fall through to fallback toast
+  }
+
+  toast.add({
+    title: "Copy this link",
+    description: invoicePublicUrl.value,
+    color: "gray",
+  });
+};
 </script>
 
 <template>
@@ -266,6 +319,27 @@ const launchPaystackPayment = async () => {
               color="gray"
               variant="ghost"
               class="w-full justify-center whitespace-normal"
+              icon="i-heroicons-link"
+              :disabled="!invoicePublicUrl"
+              @click="copyShareLink"
+            >
+              Copy share link
+            </UButton>
+            <UButton
+              color="gray"
+              variant="ghost"
+              class="w-full justify-center whitespace-normal"
+              :href="invoicePublicUrl"
+              :disabled="!invoicePublicUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open client view
+            </UButton>
+            <UButton
+              color="gray"
+              variant="ghost"
+              class="w-full justify-center whitespace-normal"
               :href="smsShareUrl"
               :disabled="!smsShareUrl"
             >
@@ -302,7 +376,7 @@ const launchPaystackPayment = async () => {
           <div class="mt-4 rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4 text-sm text-amber-700">
             <p class="font-semibold">Amount due</p>
             <p class="mt-1 text-lg font-bold">
-              {{ totals ? formatCurrency(totals.grandTotal, profile.currency) : '-' }}
+              {{ totals ? formatCurrency(totals.grandTotal, invoiceCurrency) : '-' }}
             </p>
           </div>
           <UButton
@@ -328,7 +402,7 @@ const launchPaystackPayment = async () => {
           <div class="mt-4 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 text-sm text-emerald-700">
             <p class="font-semibold">Amount collected</p>
             <p class="mt-1 text-lg font-bold">
-              {{ totals ? formatCurrency(totals.grandTotal, profile.currency) : '-' }}
+              {{ totals ? formatCurrency(totals.grandTotal, invoiceCurrency) : '-' }}
             </p>
           </div>
           <p class="mt-3 text-xs text-slate-500">
@@ -354,8 +428,8 @@ const launchPaystackPayment = async () => {
                 <tr v-for="item in invoice.lineItems" :key="item.id">
                   <td class="px-4 py-3 text-slate-900">{{ item.description }}</td>
                   <td class="px-4 py-3 text-slate-600">{{ item.quantity }}</td>
-                  <td class="px-4 py-3 text-slate-600">{{ formatCurrency(item.unitPrice, profile.currency) }}</td>
-                  <td class="px-4 py-3 text-slate-900">{{ formatCurrency(item.quantity * item.unitPrice, profile.currency) }}</td>
+                  <td class="px-4 py-3 text-slate-600">{{ formatCurrency(item.unitPrice, invoiceCurrency) }}</td>
+                  <td class="px-4 py-3 text-slate-900">{{ formatCurrency(item.quantity * item.unitPrice, invoiceCurrency) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -368,19 +442,19 @@ const launchPaystackPayment = async () => {
             <div class="flex items-center justify-between">
               <span>Subtotal</span>
               <span class="font-semibold text-slate-900">
-                {{ totals ? formatCurrency(totals.subtotal, profile.currency) : '-' }}
+                {{ totals ? formatCurrency(totals.subtotal, invoiceCurrency) : '-' }}
               </span>
             </div>
             <div class="flex items-center justify-between">
               <span>Taxes</span>
               <span class="font-semibold text-slate-900">
-                {{ totals ? formatCurrency(totals.taxTotal, profile.currency) : '-' }}
+                {{ totals ? formatCurrency(totals.taxTotal, invoiceCurrency) : '-' }}
               </span>
             </div>
             <div class="flex items-center justify-between">
               <span>Discounts</span>
               <span class="font-semibold text-slate-900">
-                {{ totals ? formatCurrency(totals.discountTotal, profile.currency) : '-' }}
+                {{ totals ? formatCurrency(totals.discountTotal, invoiceCurrency) : '-' }}
               </span>
             </div>
             <div
@@ -389,7 +463,7 @@ const launchPaystackPayment = async () => {
             >
               <span class="font-semibold" :class="totalsHighlight.titleClass">{{ totalsHighlight.label }}</span>
               <span class="text-lg font-semibold" :class="totalsHighlight.amountClass">
-                {{ totals ? formatCurrency(totals.grandTotal, profile.currency) : '-' }}
+                {{ totals ? formatCurrency(totals.grandTotal, invoiceCurrency) : '-' }}
               </span>
             </div>
           </div>
