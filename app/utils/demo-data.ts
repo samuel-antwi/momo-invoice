@@ -85,6 +85,7 @@ const invoices: InvoiceRecord[] = [
     issueDate: new Date("2024-10-01").toISOString(),
     dueDate: new Date("2024-10-07").toISOString(),
     status: "overdue",
+    currency: businessProfile.currency,
     invoiceNumber: "GNB-2024-001",
     lineItems: buildLineItems([
       { description: "Full Glam Package", quantity: 1, unitPrice: 480 },
@@ -102,6 +103,7 @@ const invoices: InvoiceRecord[] = [
     issueDate: new Date("2024-09-20").toISOString(),
     dueDate: new Date("2024-09-27").toISOString(),
     status: "paid",
+    currency: businessProfile.currency,
     invoiceNumber: "GNB-2024-002",
     lineItems: buildLineItems([
       { description: "Corporate Makeup Session", quantity: 2, unitPrice: 350 },
@@ -117,6 +119,7 @@ const invoices: InvoiceRecord[] = [
     issueDate: new Date("2024-10-05").toISOString(),
     dueDate: new Date("2024-10-12").toISOString(),
     status: "sent",
+    currency: businessProfile.currency,
     invoiceNumber: "GNB-2024-003",
     lineItems: buildLineItems([
       { description: "Bridal Trial", quantity: 1, unitPrice: 600 },
@@ -131,6 +134,7 @@ const invoices: InvoiceRecord[] = [
     issueDate: new Date("2024-10-12").toISOString(),
     dueDate: new Date("2024-10-19").toISOString(),
     status: "draft",
+    currency: businessProfile.currency,
     invoiceNumber: "GNB-2024-004",
     lineItems: buildLineItems([
       { description: "Product Refill", quantity: 5, unitPrice: 75 },

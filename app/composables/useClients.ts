@@ -71,6 +71,35 @@ export const useClients = () => {
     return response.client;
   };
 
+  const updateClient = async (id: string, payload: CreateClientPayload) => {
+    const response = await $fetch<{ client: ClientContact }>(`/api/clients/${id}`, {
+      method: "PATCH",
+      body: payload,
+    });
+
+    if (!response?.client) {
+      throw new Error("Failed to update client");
+    }
+
+    const previous = clients.value.find((client) => client.id === id);
+    clients.value = clients.value.map((client) =>
+      client.id === id ? response.client : client,
+    );
+
+    if (previous && previous.momoProvider !== response.client.momoProvider) {
+      const nextBreakdown = { ...breakdown.value };
+      const prevCount = (nextBreakdown[previous.momoProvider] ?? 1) - 1;
+      nextBreakdown[previous.momoProvider] = Math.max(prevCount, 0);
+      nextBreakdown[response.client.momoProvider] =
+        (nextBreakdown[response.client.momoProvider] ?? 0) + 1;
+      breakdown.value = nextBreakdown;
+    }
+
+    await refresh();
+
+    return response.client;
+  };
+
   return {
     clients,
     pending,
@@ -79,5 +108,6 @@ export const useClients = () => {
     searchClients,
     clientsByProvider,
     createClient,
+    updateClient,
   };
 };

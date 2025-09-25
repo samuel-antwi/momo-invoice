@@ -109,6 +109,7 @@ export interface InvoiceRecord {
   issueDate: string;
   dueDate?: string;
   status: InvoiceStatus;
+  currency: string;
   invoiceNumber: string;
   lineItems: InvoiceLineItem[];
   notes?: string;

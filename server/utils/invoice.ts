@@ -77,6 +77,7 @@ export const mapInvoiceRow = (invoice: InvoiceRow): InvoiceRecord => {
     issueDate,
     dueDate,
     status: invoice.status,
+    currency: invoice.currency,
     invoiceNumber: invoice.invoiceNumber,
     lineItems,
     notes: invoice.notes ?? undefined,

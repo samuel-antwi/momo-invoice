@@ -74,6 +74,78 @@ const shareMessage = computed(() => {
   return `Hi ${client.value.fullName}, here is your invoice ${invoice.value.invoiceNumber} for ${amount}. Pay securely via Paystack${dueText}. Thank you!`;
 });
 
+const encodedShareMessage = computed(() => encodeURIComponent(shareMessage.value));
+
+const defaultWhatsappCountryCode = computed(() => {
+  const currency = invoice.value?.currency ?? profile.value.currency;
+  switch (currency?.toUpperCase()) {
+    case "GHS":
+      return "233"; // Ghana
+    case "NGN":
+      return "234"; // Nigeria
+    case "KES":
+      return "254"; // Kenya
+    default:
+      return undefined;
+  }
+});
+
+const normaliseWhatsappNumber = (input?: string | null) => {
+  if (!input) return undefined;
+
+  let digitsOnly = input.replace(/\D+/g, "");
+  if (!digitsOnly) return undefined;
+
+  if (digitsOnly.startsWith("00")) {
+    digitsOnly = digitsOnly.slice(2);
+  }
+
+  if (
+    defaultWhatsappCountryCode.value &&
+    digitsOnly.startsWith("0") &&
+    digitsOnly.length === 10
+  ) {
+    return `${defaultWhatsappCountryCode.value}${digitsOnly.slice(1)}`;
+  }
+
+  if (defaultWhatsappCountryCode.value && digitsOnly.length === 9) {
+    return `${defaultWhatsappCountryCode.value}${digitsOnly}`;
+  }
+
+  return digitsOnly;
+};
+
+const whatsappRecipient = computed(() => {
+  const candidates = [client.value?.whatsappNumber, client.value?.phone];
+  for (const candidate of candidates) {
+    const normalised = normaliseWhatsappNumber(candidate);
+    if (normalised) {
+      return normalised;
+    }
+  }
+  return undefined;
+});
+
+const whatsappShareUrl = computed(() => {
+  if (!whatsappRecipient.value || !shareMessage.value) return undefined;
+  return `https://wa.me/${whatsappRecipient.value}?text=${encodedShareMessage.value}`;
+});
+
+const smsShareUrl = computed(() => {
+  if (!client.value?.phone || !shareMessage.value) return undefined;
+  return `sms:${client.value.phone}?body=${encodedShareMessage.value}`;
+});
+
+const shareEmailSubject = computed(() =>
+  invoice.value ? `Invoice ${invoice.value.invoiceNumber}` : "Invoice"
+);
+const encodedEmailSubject = computed(() => encodeURIComponent(shareEmailSubject.value));
+
+const emailShareUrl = computed(() => {
+  if (!client.value?.email || !shareMessage.value) return undefined;
+  return `mailto:${client.value.email}?subject=${encodedEmailSubject.value}&body=${encodedShareMessage.value}`;
+});
+
 const goBack = () => router.push("/app/invoices");
 
 const isInitializingPayment = ref(false);
@@ -182,7 +254,11 @@ const launchPaystackPayment = async () => {
               color="gray"
               variant="ghost"
               class="w-full justify-center whitespace-normal"
-              :href="`https://wa.me/${client?.whatsappNumber}?text=${encodeURIComponent(shareMessage)}`"
+              :href="whatsappShareUrl"
+              :disabled="!whatsappShareUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              :title="!whatsappShareUrl ? 'Add a client WhatsApp or phone number to share instantly.' : undefined"
             >
               Share via WhatsApp
             </UButton>
@@ -190,7 +266,8 @@ const launchPaystackPayment = async () => {
               color="gray"
               variant="ghost"
               class="w-full justify-center whitespace-normal"
-              :href="`sms:${client?.phone}?body=${encodeURIComponent(shareMessage)}`"
+              :href="smsShareUrl"
+              :disabled="!smsShareUrl"
             >
               Send SMS
             </UButton>
@@ -198,7 +275,8 @@ const launchPaystackPayment = async () => {
               color="gray"
               variant="ghost"
               class="w-full justify-center whitespace-normal"
-              :href="`mailto:${client?.email}?subject=Invoice ${invoice.invoiceNumber}&body=${encodeURIComponent(shareMessage)}`"
+              :href="emailShareUrl"
+              :disabled="!emailShareUrl"
             >
               Email invoice
             </UButton>

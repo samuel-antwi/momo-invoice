@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { serverSupabaseUser } from "#supabase/server";
-import { createError, readBody, setResponseStatus } from "h3";
+import { createError, getRouterParam, readBody, setResponseStatus } from "h3";
 
 import { db } from "../../db/client";
 import { clients } from "../../db/schema";
@@ -11,8 +11,12 @@ import { clientPayloadSchema } from "../../utils/schemas/client";
 export default defineEventHandler(async (event) => {
   const user = await serverSupabaseUser(event);
   if (!user) {
-    setResponseStatus(event, 401);
-    return { error: "Unauthorized" };
+    throw createError({ statusCode: 401, statusMessage: "Unauthorized" });
+  }
+
+  const clientId = getRouterParam(event, "id");
+  if (!clientId) {
+    throw createError({ statusCode: 400, statusMessage: "Client id is required" });
   }
 
   const body = await readBody(event);
@@ -30,34 +34,35 @@ export default defineEventHandler(async (event) => {
   const payload = parsed.data;
   const business = await ensureBusinessForUser(user);
 
-  const [created] = await db
-    .insert(clients)
-    .values({
-      businessId: business.id,
-      fullName: payload.fullName.trim(),
+  const existing = await db.query.clients.findFirst({
+    where: and(eq(clients.id, clientId), eq(clients.businessId, business.id)),
+  });
+
+  if (!existing) {
+    throw createError({ statusCode: 404, statusMessage: "Client not found" });
+  }
+
+  const [updated] = await db
+    .update(clients)
+    .set({
+      fullName: payload.fullName,
       businessName: payload.businessName ?? null,
       email: payload.email ?? null,
       phone: payload.phone ?? null,
       whatsappNumber: payload.whatsappNumber ?? null,
       momoProvider: payload.momoProvider,
       notes: payload.notes ?? null,
+      updatedAt: new Date(),
     })
+    .where(and(eq(clients.id, clientId), eq(clients.businessId, business.id)))
     .returning();
 
-  if (!created) {
-    throw createError({ statusCode: 500, statusMessage: "Failed to create client" });
+  if (!updated) {
+    throw createError({ statusCode: 500, statusMessage: "Failed to update client" });
   }
 
-  const row = await db.query.clients.findFirst({
-    where: eq(clients.id, created.id),
-  });
+  const client = mapClientRow(updated);
 
-  if (!row) {
-    throw createError({ statusCode: 500, statusMessage: "Unable to load created client" });
-  }
-
-  const client = mapClientRow(row);
-
-  setResponseStatus(event, 201);
+  setResponseStatus(event, 200);
   return { client };
 });
