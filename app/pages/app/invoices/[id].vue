@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import InvoiceStatusPill from "~/components/invoices/InvoiceStatusPill.vue";
 import { useInvoices } from "~/composables/useInvoices";
@@ -7,6 +7,7 @@ import { useClients } from "~/composables/useClients";
 import { useSession } from "~/composables/useSession";
 import type { InvoiceStatus } from "~/types/models";
 import { calculateInvoiceTotals, formatCurrency, formatDate } from "~/utils/invoice-helpers";
+import parsePhoneNumberFromString, { type CountryCode } from "libphonenumber-js/min";
 
 const route = useRoute();
 const router = useRouter();
@@ -23,6 +24,26 @@ const appUrl = ref<string | undefined>(runtimeConfig.public.appUrl?.replace(/\/$
 if (!appUrl.value && import.meta.client) {
   appUrl.value = window.location.origin;
 }
+
+const currencyDialCodeMap: Record<string, string> = {
+  GHS: "233",
+  NGN: "234",
+  KES: "254",
+  GBP: "44",
+  USD: "1",
+  EUR: "44", // default to UK for now
+};
+
+const currencyCountryMap: Record<string, CountryCode> = {
+  GHS: "GH",
+  NGN: "NG",
+  KES: "KE",
+  GBP: "GB",
+  USD: "US",
+  EUR: "GB",
+};
+
+const fallbackCountryCodesBase: CountryCode[] = ["GB", "GH", "NG", "KE", "US"];
 
 const invoice = computed(() => invoices.value.find((item) => item.id === invoiceId.value));
 const client = computed(() => clients.value.find((item) => item.id === invoice.value?.clientId));
@@ -110,43 +131,95 @@ const shareMessage = computed(() => {
 
 const encodedShareMessage = computed(() => encodeURIComponent(shareMessage.value));
 
-const defaultWhatsappCountryCode = computed(() => {
-  const currency = invoice.value?.currency ?? profile.value.currency;
-  switch (currency?.toUpperCase()) {
-    case "GHS":
-      return "233"; // Ghana
-    case "NGN":
-      return "234"; // Nigeria
-    case "KES":
-      return "254"; // Kenya
-    default:
-      return undefined;
+const candidateCountryCodes = computed<CountryCode[]>(() => {
+  const codes: CountryCode[] = [];
+  const currency = (invoice.value?.currency ?? profile.value.currency ?? "").toUpperCase();
+  const currencyCountry = currencyCountryMap[currency] ?? undefined;
+  if (currencyCountry) {
+    codes.push(currencyCountry);
   }
+  for (const code of fallbackCountryCodesBase) {
+    if (!codes.includes(code)) codes.push(code);
+  }
+  return codes;
+});
+
+const tryParseInternational = (raw: string, country?: CountryCode) => {
+  try {
+    const parsed = parsePhoneNumberFromString(raw, country);
+    if (parsed?.isValid()) {
+      return parsed;
+    }
+  } catch (error) {
+    // ignore parsing errors and fall back to heuristics
+  }
+  return undefined;
+};
+
+const defaultWhatsappCountryCode = computed(() => {
+  const currency = (invoice.value?.currency ?? profile.value.currency ?? "").toUpperCase();
+  const fromCurrency = currencyDialCodeMap[currency];
+  if (fromCurrency) return fromCurrency;
+
+  const fallbackNumbers = [profile.value.whatsappNumber, profile.value.phone];
+  for (const number of fallbackNumbers) {
+    if (!number) continue;
+    const parsed = tryParseInternational(number);
+    if (parsed) {
+      return parsed.countryCallingCode;
+    }
+  }
+
+  return undefined;
 });
 
 const normaliseWhatsappNumber = (input?: string | null) => {
   if (!input) return undefined;
+  const trimmed = input.trim();
+  if (!trimmed) return undefined;
 
-  let digitsOnly = input.replace(/\D+/g, "");
+  const direct = tryParseInternational(trimmed);
+  if (direct) return direct.number.replace(/^\+/, "");
+
+  let digitsOnly = trimmed.replace(/\D+/g, "");
+
+  const heuristicCountries: CountryCode[] = [];
+  if (digitsOnly.length === 11 && digitsOnly.startsWith("07")) {
+    heuristicCountries.push("GB");
+  }
+  if (digitsOnly.length === 10 && digitsOnly.startsWith("0")) {
+    heuristicCountries.push("GH");
+  }
+  if (digitsOnly.length === 11 && digitsOnly.startsWith("0")) {
+    heuristicCountries.push("NG");
+  }
+
+  const candidates = [...new Set([...heuristicCountries, ...candidateCountryCodes.value])];
+
+  for (const country of candidates) {
+    const attempt = tryParseInternational(trimmed, country);
+    if (attempt) return attempt.number.replace(/^\+/, "");
+  }
+
+  digitsOnly = trimmed.replace(/\D+/g, "");
   if (!digitsOnly) return undefined;
 
   if (digitsOnly.startsWith("00")) {
     digitsOnly = digitsOnly.slice(2);
   }
 
-  if (
-    defaultWhatsappCountryCode.value &&
-    digitsOnly.startsWith("0") &&
-    digitsOnly.length === 10
-  ) {
-    return `${defaultWhatsappCountryCode.value}${digitsOnly.slice(1)}`;
+  if (defaultWhatsappCountryCode.value) {
+    if (digitsOnly.startsWith("0") && digitsOnly.length >= 9) {
+      return `${defaultWhatsappCountryCode.value}${digitsOnly.slice(1)}`;
+    }
+
+    if (digitsOnly.length <= 10 && digitsOnly.length >= 6) {
+      const national = digitsOnly.startsWith("0") ? digitsOnly.slice(1) : digitsOnly;
+      return `${defaultWhatsappCountryCode.value}${national}`;
+    }
   }
 
-  if (defaultWhatsappCountryCode.value && digitsOnly.length === 9) {
-    return `${defaultWhatsappCountryCode.value}${digitsOnly}`;
-  }
-
-  return digitsOnly;
+  return digitsOnly.length >= 8 ? digitsOnly : undefined;
 };
 
 const whatsappRecipient = computed(() => {
@@ -240,15 +313,6 @@ const updateStatus = async (id: string, status: InvoiceStatus) => {
   }
 };
 
-const markInvoiceShared = async () => {
-  if (!invoice.value) return;
-  try {
-    await markShared(invoice.value.id);
-  } catch (error) {
-    // keep silent but log for debugging
-    console.error("Failed to record invoice share", error);
-  }
-};
 
 const copyShareLink = async () => {
   if (!invoicePublicUrl.value) {
@@ -263,7 +327,6 @@ const copyShareLink = async () => {
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(invoicePublicUrl.value);
-      await markInvoiceShared();
       toast.add({
         title: "Link copied",
         description: "Invoice share link is ready to paste into WhatsApp or SMS.",
@@ -271,11 +334,7 @@ const copyShareLink = async () => {
       });
       return;
     }
-  } catch (error) {
-    // fall through to fallback toast
-  }
-
-  await markInvoiceShared();
+  } catch (error) {}
 
   toast.add({
     title: "Copy this link",
@@ -297,7 +356,6 @@ const copyPdfLink = async () => {
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(invoicePublicPdfUrl.value);
-      await markInvoiceShared();
       toast.add({
         title: "PDF link copied",
         description: "Share the PDF invoice with your client.",
@@ -305,11 +363,7 @@ const copyPdfLink = async () => {
       });
       return;
     }
-  } catch (error) {
-    // continue to fallback toast
-  }
-
-  await markInvoiceShared();
+  } catch (error) {}
 
   toast.add({
     title: "PDF link",
@@ -412,7 +466,6 @@ const copyPdfLink = async () => {
               :disabled="!invoicePdfUrl"
               target="_blank"
               rel="noopener noreferrer"
-              @click="markInvoiceShared"
             >
               Download PDF
             </UButton>
@@ -434,7 +487,6 @@ const copyPdfLink = async () => {
               :disabled="!invoicePublicUrl"
               target="_blank"
               rel="noopener noreferrer"
-              @click="markInvoiceShared"
             >
               Open client view
             </UButton>
@@ -444,7 +496,6 @@ const copyPdfLink = async () => {
               class="w-full justify-center whitespace-normal"
               :href="smsShareUrl"
               :disabled="!smsShareUrl"
-              @click="markInvoiceShared"
             >
               Send SMS
             </UButton>
@@ -454,7 +505,6 @@ const copyPdfLink = async () => {
               class="w-full justify-center whitespace-normal"
               :href="emailShareUrl"
               :disabled="!emailShareUrl"
-              @click="markInvoiceShared"
             >
               Email invoice
             </UButton>

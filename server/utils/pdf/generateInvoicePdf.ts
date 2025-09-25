@@ -1,44 +1,66 @@
-import { renderInvoiceHtml, type InvoicePdfTemplateContext } from "./renderInvoiceHtml";
+import os from "node:os";
+import path from "node:path";
+import { promises as fs } from "node:fs";
+import { createRequire } from "node:module";
+
+import PdfPrinter from "pdfmake";
+
+import { buildInvoiceDocDefinition, type InvoicePdfTemplateContext } from "./buildInvoiceDocDefinition";
 
 export interface GenerateInvoicePdfOptions extends InvoicePdfTemplateContext {}
 
-const resolveChromium = async () => {
-  try {
-    const mod = await import("playwright");
-    return mod.chromium;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("Cannot find package 'playwright'")) {
-      throw new Error(
-        "Playwright is not installed. Add it with `npm install -D playwright` (or install the optional dependency) and run `npx playwright install chromium` to enable PDF generation.",
-      );
-    }
-    throw error;
+let fontDescriptorsPromise: Promise<Record<string, { normal: string; bold: string; italics: string; bolditalics: string }>> | null = null;
+
+const prepareFonts = async () => {
+  if (!fontDescriptorsPromise) {
+    fontDescriptorsPromise = (async () => {
+      const require = createRequire(import.meta.url);
+      const vfs: Record<string, string> = require("pdfmake/build/vfs_fonts.js");
+
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pdfmake-fonts-"));
+
+      const writeFont = async (name: string) => {
+        const data = vfs[name];
+        if (!data) {
+          throw new Error(`Font ${name} missing in pdfmake bundle`);
+        }
+        const target = path.join(dir, name);
+        await fs.writeFile(target, Buffer.from(data, "base64"));
+        return target;
+      };
+
+      return {
+        Roboto: {
+          normal: await writeFont("Roboto-Regular.ttf"),
+          bold: await writeFont("Roboto-Medium.ttf"),
+          italics: await writeFont("Roboto-Italic.ttf"),
+          bolditalics: await writeFont("Roboto-MediumItalic.ttf"),
+        },
+      } as const;
+    })();
   }
+
+  return fontDescriptorsPromise;
 };
 
 export const generateInvoicePdf = async (options: GenerateInvoicePdfOptions) => {
-  let browser: { close: () => Promise<void> } | undefined;
-  try {
-    const chromium = await resolveChromium();
-    browser = await chromium.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  const fonts = await prepareFonts();
+  const printer = new PdfPrinter(fonts);
+  const docDefinition = buildInvoiceDocDefinition(options);
+  const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+  const chunks: Buffer[] = [];
+
+  return await new Promise<Buffer>((resolve, reject) => {
+    pdfDoc.on("data", (chunk) => {
+      chunks.push(chunk as Buffer);
     });
-    const page = await browser.newPage();
-    const html = renderInvoiceHtml(options);
-    await page.setContent(html, { waitUntil: "networkidle" });
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "20mm", bottom: "20mm", left: "16mm", right: "16mm" },
+    pdfDoc.on("end", () => {
+      resolve(Buffer.concat(chunks));
     });
-    await page.close();
-    return pdf;
-  } catch (error) {
-    throw error;
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
-  }
+    pdfDoc.on("error", (error) => {
+      reject(error);
+    });
+    pdfDoc.end();
+  });
 };

@@ -45,15 +45,11 @@ export default defineEventHandler(async (event) => {
       paymentLink,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : undefined;
-    if (message?.includes("Playwright is not installed")) {
-      throw createError({
-        statusCode: 503,
-        statusMessage: "PDF generation unavailable",
-        data: { message },
-      });
-    }
-    throw error;
+    console.error("Failed to generate public invoice PDF", error);
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Unable to generate invoice PDF",
+    });
   }
 
   setResponseHeader(event, "Content-Type", "application/pdf");
