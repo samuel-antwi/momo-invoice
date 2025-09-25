@@ -67,8 +67,49 @@ export const useInvoices = () => {
     { immediate: false },
   );
 
-  const setStatus = (id: string, status: InvoiceStatus) => {
-    invoices.value = invoices.value.map((invoice) => (invoice.id === id ? { ...invoice, status } : invoice));
+  const applyInvoicePatch = async (
+    id: string,
+    patch: { status?: InvoiceStatus; lastSharedAt?: string },
+  ) => {
+    const previous = [...invoices.value];
+    invoices.value = invoices.value.map((invoice) =>
+      invoice.id === id ? { ...invoice, ...patch } : invoice,
+    );
+
+    try {
+      const response = await $fetch<{ invoice: InvoiceRecord }>(`/api/invoices/${id}`, {
+        method: "PATCH",
+        body: patch,
+      });
+
+      if (response?.invoice) {
+        invoices.value = invoices.value.map((invoice) =>
+          invoice.id === id ? response.invoice : invoice,
+        );
+      }
+    } catch (error) {
+      invoices.value = previous;
+      throw error;
+    }
+  };
+
+  const setStatus = async (id: string, status: InvoiceStatus) => {
+    await applyInvoicePatch(id, { status });
+  };
+
+  const markShared = async (id: string) => {
+    const invoice = invoices.value.find((item) => item.id === id);
+    if (!invoice) return;
+
+    const patch: { status?: InvoiceStatus; lastSharedAt: string } = {
+      lastSharedAt: new Date().toISOString(),
+    };
+
+    if (invoice.status === "draft") {
+      patch.status = "sent";
+    }
+
+    await applyInvoicePatch(id, patch);
   };
 
   const markPaid = (id: string) => {
@@ -118,6 +159,7 @@ export const useInvoices = () => {
     removeInvoice,
     setStatus,
     markPaid,
+    markShared,
     createInvoice,
   };
 };

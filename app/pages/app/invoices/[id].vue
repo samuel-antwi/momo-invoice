@@ -5,13 +5,14 @@ import InvoiceStatusPill from "~/components/invoices/InvoiceStatusPill.vue";
 import { useInvoices } from "~/composables/useInvoices";
 import { useClients } from "~/composables/useClients";
 import { useSession } from "~/composables/useSession";
+import type { InvoiceStatus } from "~/types/models";
 import { calculateInvoiceTotals, formatCurrency, formatDate } from "~/utils/invoice-helpers";
 
 const route = useRoute();
 const router = useRouter();
 const invoiceId = computed(() => route.params.id as string);
 
-const { invoices, markPaid, setStatus } = useInvoices();
+const { invoices, markPaid, setStatus, markShared } = useInvoices();
 const { clients } = useClients();
 const { profile } = useSession();
 const toast = useToast();
@@ -32,6 +33,13 @@ const invoiceCurrency = computed(() => invoice.value?.currency ?? profile.value.
 const invoicePublicUrl = computed(() => {
   if (!invoice.value || !appUrl.value) return undefined;
   return `${appUrl.value}/invoices/${invoice.value.id}`;
+});
+
+const invoicePdfUrl = computed(() => (invoice.value ? `/api/invoices/${invoice.value.id}/pdf` : undefined));
+
+const invoicePublicPdfUrl = computed(() => {
+  if (!invoice.value || !appUrl.value) return undefined;
+  return `${appUrl.value}/api/public/invoices/${invoice.value.id}/pdf`;
 });
 
 const isPaid = computed(() => invoice.value?.status === "paid");
@@ -60,18 +68,18 @@ const totalsHighlight = computed(() => {
 const statusActions = computed(() => {
   if (!invoice.value) return [];
   const { id, status } = invoice.value;
-  const actions: { label: string; action: () => void }[] = [];
+  const actions: { label: string; action: () => void | Promise<void> }[] = [];
 
   if (status !== "paid") {
     actions.push({ label: "Mark as paid", action: () => markPaid(id) });
   }
 
   if (status !== "sent") {
-    actions.push({ label: "Mark as sent", action: () => setStatus(id, "sent") });
+    actions.push({ label: "Mark as sent", action: () => updateStatus(id, "sent") });
   }
 
   if (status !== "overdue") {
-    actions.push({ label: "Mark as overdue", action: () => setStatus(id, "overdue") });
+    actions.push({ label: "Mark as overdue", action: () => updateStatus(id, "overdue") });
   }
 
   return actions;
@@ -82,18 +90,22 @@ const shareMessage = computed(() => {
   const amount = totals.value ? formatCurrency(totals.value.grandTotal, invoiceCurrency.value) : "";
   const link = invoicePublicUrl.value;
 
+  const pdfLink = invoicePublicPdfUrl.value;
+
   if (isPaid.value) {
     const paidOn = paidAtDisplay.value ? ` on ${paidAtDisplay.value}` : "";
     const receiptLine = link ? `\nReceipt: ${link}` : "";
-    return `Hi ${client.value.fullName}, thanks for settling invoice ${invoice.value.invoiceNumber}${paidOn}. We've recorded your payment of ${amount}.${receiptLine}`;
+    const pdfLine = pdfLink ? `\nPDF copy: ${pdfLink}` : "";
+    return `Hi ${client.value.fullName}, thanks for settling invoice ${invoice.value.invoiceNumber}${paidOn}. We've recorded your payment of ${amount}.${receiptLine}${pdfLine}`;
   }
 
   const dueText = dueDateDisplay.value ? ` before ${dueDateDisplay.value}` : "";
   const paymentLine = link
     ? `Pay securely via Paystack${dueText} here: ${link}`
     : `Pay securely via Paystack${dueText}.`;
+  const pdfLine = pdfLink ? `\nDownload PDF: ${pdfLink}` : "";
 
-  return `Hi ${client.value.fullName}, here is your invoice ${invoice.value.invoiceNumber} for ${amount}. ${paymentLine}\nThank you!`;
+  return `Hi ${client.value.fullName}, here is your invoice ${invoice.value.invoiceNumber} for ${amount}. ${paymentLine}${pdfLine}\nThank you!`;
 });
 
 const encodedShareMessage = computed(() => encodeURIComponent(shareMessage.value));
@@ -210,6 +222,34 @@ const launchPaystackPayment = async () => {
   }
 };
 
+const updateStatus = async (id: string, status: InvoiceStatus) => {
+  try {
+    await setStatus(id, status);
+    toast.add({
+      title: "Invoice updated",
+      description: `Status changed to ${status}.`,
+      color: "green",
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update invoice status.";
+    toast.add({
+      title: "Status update failed",
+      description: message,
+      color: "red",
+    });
+  }
+};
+
+const markInvoiceShared = async () => {
+  if (!invoice.value) return;
+  try {
+    await markShared(invoice.value.id);
+  } catch (error) {
+    // keep silent but log for debugging
+    console.error("Failed to record invoice share", error);
+  }
+};
+
 const copyShareLink = async () => {
   if (!invoicePublicUrl.value) {
     toast.add({
@@ -223,6 +263,7 @@ const copyShareLink = async () => {
   try {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(invoicePublicUrl.value);
+      await markInvoiceShared();
       toast.add({
         title: "Link copied",
         description: "Invoice share link is ready to paste into WhatsApp or SMS.",
@@ -234,9 +275,45 @@ const copyShareLink = async () => {
     // fall through to fallback toast
   }
 
+  await markInvoiceShared();
+
   toast.add({
     title: "Copy this link",
     description: invoicePublicUrl.value,
+    color: "gray",
+  });
+};
+
+const copyPdfLink = async () => {
+  if (!invoicePublicPdfUrl.value) {
+    toast.add({
+      title: "PDF link unavailable",
+      description: "Generate the invoice PDF first or refresh the page.",
+      color: "amber",
+    });
+    return;
+  }
+
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(invoicePublicPdfUrl.value);
+      await markInvoiceShared();
+      toast.add({
+        title: "PDF link copied",
+        description: "Share the PDF invoice with your client.",
+        color: "green",
+      });
+      return;
+    }
+  } catch (error) {
+    // continue to fallback toast
+  }
+
+  await markInvoiceShared();
+
+  toast.add({
+    title: "PDF link",
+    description: invoicePublicPdfUrl.value,
     color: "gray",
   });
 };
@@ -312,6 +389,7 @@ const copyShareLink = async () => {
               target="_blank"
               rel="noopener noreferrer"
               :title="!whatsappShareUrl ? 'Add a client WhatsApp or phone number to share instantly.' : undefined"
+              @click="markInvoiceShared"
             >
               Share via WhatsApp
             </UButton>
@@ -329,10 +407,34 @@ const copyShareLink = async () => {
               color="gray"
               variant="ghost"
               class="w-full justify-center whitespace-normal"
+              icon="i-heroicons-document-text"
+              :href="invoicePdfUrl"
+              :disabled="!invoicePdfUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              @click="markInvoiceShared"
+            >
+              Download PDF
+            </UButton>
+            <UButton
+              color="gray"
+              variant="ghost"
+              class="w-full justify-center whitespace-normal"
+              icon="i-heroicons-document-duplicate"
+              :disabled="!invoicePublicPdfUrl"
+              @click="copyPdfLink"
+            >
+              Copy PDF link
+            </UButton>
+            <UButton
+              color="gray"
+              variant="ghost"
+              class="w-full justify-center whitespace-normal"
               :href="invoicePublicUrl"
               :disabled="!invoicePublicUrl"
               target="_blank"
               rel="noopener noreferrer"
+              @click="markInvoiceShared"
             >
               Open client view
             </UButton>
@@ -342,6 +444,7 @@ const copyShareLink = async () => {
               class="w-full justify-center whitespace-normal"
               :href="smsShareUrl"
               :disabled="!smsShareUrl"
+              @click="markInvoiceShared"
             >
               Send SMS
             </UButton>
@@ -351,6 +454,7 @@ const copyShareLink = async () => {
               class="w-full justify-center whitespace-normal"
               :href="emailShareUrl"
               :disabled="!emailShareUrl"
+              @click="markInvoiceShared"
             >
               Email invoice
             </UButton>

@@ -26,6 +26,8 @@ interface PublicInvoiceResponse {
   };
 }
 
+definePageMeta({ layout: "public" });
+
 const route = useRoute();
 const toast = useToast();
 
