@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 import type { InvoiceRecord } from "~/types/models";
 import { calculateInvoiceTotals, formatCurrency, formatDate } from "~/utils/invoice-helpers";
@@ -58,7 +58,7 @@ const isPaid = computed(() => invoice.value?.status === "paid");
 const isInitializingPayment = ref(false);
 
 const launchPaystackPayment = async () => {
-  if (!invoice.value) {
+  if (!invoice.value || isPaid.value) {
     return;
   }
 
@@ -101,6 +101,22 @@ const continueExistingPayment = () => {
     window.location.href = url;
   }
 };
+
+watch(
+  () => ({ invoice: invoice.value, pending: pending.value, error: error.value }),
+  async (state) => {
+    if (state.pending || state.error || !state.invoice) return;
+    if (state.invoice.status === "paid") return;
+
+    if (data.value?.paystack?.authorizationUrl) {
+      continueExistingPayment();
+      return;
+    }
+
+    await launchPaystackPayment();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
