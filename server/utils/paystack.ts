@@ -10,13 +10,19 @@ const getSecretKey = () => {
   const secretKey = config.paystack?.secretKey;
 
   if (!secretKey) {
-    throw createError({ statusCode: 500, statusMessage: "Paystack secret key not configured" });
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Paystack secret key not configured",
+    });
   }
 
   return secretKey;
 };
 
-const paystackRequest = async <T>(path: string, init: Parameters<typeof $fetch>[1] = {}) => {
+const paystackRequest = async <T>(
+  path: string,
+  init: Parameters<typeof $fetch>[1] = {}
+) => {
   const secretKey = getSecretKey();
 
   return $fetch<T>(`${PAYSTACK_API_BASE}${path}`, {
@@ -51,21 +57,26 @@ interface PaystackTransactionResponse {
   };
 }
 
-export const initializePaystackTransaction = async (payload: InitializeTransactionPayload) => {
-  const response = await paystackRequest<PaystackTransactionResponse>("/transaction/initialize", {
-    method: "POST",
-    body: {
-      reference: payload.reference,
-      email: payload.email,
-      amount: payload.amountKobo,
-      currency: payload.currency,
-      callback_url: payload.callbackUrl,
-      metadata: payload.metadata,
-      subaccount: payload.subaccount,
-      split_code: payload.splitCode,
-      bearer: payload.bearer,
-    },
-  });
+export const initializePaystackTransaction = async (
+  payload: InitializeTransactionPayload
+) => {
+  const response = await paystackRequest<PaystackTransactionResponse>(
+    "/transaction/initialize",
+    {
+      method: "POST",
+      body: {
+        reference: payload.reference,
+        email: payload.email,
+        amount: payload.amountKobo,
+        currency: payload.currency,
+        callback_url: payload.callbackUrl,
+        metadata: payload.metadata,
+        subaccount: payload.subaccount,
+        split_code: payload.splitCode,
+        bearer: payload.bearer,
+      },
+    }
+  );
 
   if (!response.status || !response.data) {
     throw createError({
@@ -85,18 +96,25 @@ export interface PaystackSignatureVerification {
 }
 
 export const verifyPaystackSignature = (
-  rawBody: string,
-  incomingSignature: string | undefined,
+  rawBody: string | Buffer,
+  incomingSignature: string | undefined
 ): PaystackSignatureVerification => {
   const config = useRuntimeConfig();
-  const secretKey = config.paystack?.webhookSecret || config.paystack?.secretKey;
+  const secretKey =
+    config.paystack?.webhookSecret || config.paystack?.secretKey;
 
   if (!secretKey || !incomingSignature) {
     return { valid: false, incomingSignature };
   }
 
-  const payloadBuffer = typeof rawBody === "string" ? Buffer.from(rawBody, "utf8") : Buffer.from(rawBody);
-  const computedSignature = crypto.createHmac("sha512", secretKey).update(payloadBuffer).digest("hex");
+  const payloadBuffer =
+    typeof rawBody === "string"
+      ? Buffer.from(rawBody, "utf8")
+      : Buffer.from(rawBody);
+  const computedSignature = crypto
+    .createHmac("sha512", secretKey)
+    .update(payloadBuffer)
+    .digest("hex");
   const normalized = incomingSignature.trim();
 
   if (computedSignature.length !== normalized.length) {
@@ -104,7 +122,11 @@ export const verifyPaystackSignature = (
   }
 
   try {
-    const valid = crypto.timingSafeEqual(Buffer.from(computedSignature, "hex"), Buffer.from(normalized, "hex"));
+    const valid = crypto.timingSafeEqual(
+      Buffer.from(computedSignature, "hex"),
+      Buffer.from(normalized, "hex")
+    );
+
     return { valid, computedSignature, incomingSignature: normalized };
   } catch (error) {
     return { valid: false, computedSignature, incomingSignature: normalized };
@@ -174,13 +196,16 @@ export const listPaystackBanks = async ({
 
   return response.data
     .filter((bank) => bank.active !== false)
-    .map((bank) => ({
-      name: bank.name,
-      code: bank.code,
-      type: bank.type ?? undefined,
-      currency: bank.currency ?? undefined,
-      country: bank.country ?? undefined,
-    } satisfies PaystackBankOption));
+    .map(
+      (bank) =>
+        ({
+          name: bank.name,
+          code: bank.code,
+          type: bank.type ?? undefined,
+          currency: bank.currency ?? undefined,
+          country: bank.country ?? undefined,
+        } satisfies PaystackBankOption)
+    );
 };
 
 interface PaystackSubaccountResponse {
@@ -211,24 +236,29 @@ interface BaseSubaccountPayload {
   type?: string;
 }
 
-export const createPaystackSubaccount = async (payload: BaseSubaccountPayload) => {
-  const response = await paystackRequest<PaystackSubaccountResponse>("/subaccount", {
-    method: "POST",
-    body: {
-      business_name: payload.businessName,
-      settlement_bank: payload.settlementBank,
-      account_number: payload.accountNumber,
-      bank_code: payload.bankCode ?? payload.settlementBank,
-      bank_account_number: payload.accountNumber,
-      bank_account_name: payload.accountName,
-      primary_contact_email: payload.primaryContactEmail,
-      primary_contact_name: payload.primaryContactName,
-      settlement_schedule: payload.settlementSchedule ?? "auto",
-      settlement_currency: payload.currency ?? "GHS",
-      business_type: payload.type,
-      metadata: payload.metadata,
-    },
-  });
+export const createPaystackSubaccount = async (
+  payload: BaseSubaccountPayload
+) => {
+  const response = await paystackRequest<PaystackSubaccountResponse>(
+    "/subaccount",
+    {
+      method: "POST",
+      body: {
+        business_name: payload.businessName,
+        settlement_bank: payload.settlementBank,
+        account_number: payload.accountNumber,
+        bank_code: payload.bankCode ?? payload.settlementBank,
+        bank_account_number: payload.accountNumber,
+        bank_account_name: payload.accountName,
+        primary_contact_email: payload.primaryContactEmail,
+        primary_contact_name: payload.primaryContactName,
+        settlement_schedule: payload.settlementSchedule ?? "auto",
+        settlement_currency: payload.currency ?? "GHS",
+        business_type: payload.type,
+        metadata: payload.metadata,
+      },
+    }
+  );
 
   if (!response.status || !response.data) {
     throw createError({
@@ -241,24 +271,30 @@ export const createPaystackSubaccount = async (payload: BaseSubaccountPayload) =
   return response.data;
 };
 
-export const updatePaystackSubaccount = async (subaccountCode: string, payload: BaseSubaccountPayload) => {
-  const response = await paystackRequest<PaystackSubaccountResponse>(`/subaccount/${subaccountCode}`, {
-    method: "PUT",
-    body: {
-      business_name: payload.businessName,
-      settlement_bank: payload.settlementBank,
-      account_number: payload.accountNumber,
-      bank_code: payload.bankCode ?? payload.settlementBank,
-      bank_account_number: payload.accountNumber,
-      bank_account_name: payload.accountName,
-      primary_contact_email: payload.primaryContactEmail,
-      primary_contact_name: payload.primaryContactName,
-      settlement_schedule: payload.settlementSchedule ?? "auto",
-      settlement_currency: payload.currency ?? "GHS",
-      business_type: payload.type,
-      metadata: payload.metadata,
-    },
-  });
+export const updatePaystackSubaccount = async (
+  subaccountCode: string,
+  payload: BaseSubaccountPayload
+) => {
+  const response = await paystackRequest<PaystackSubaccountResponse>(
+    `/subaccount/${subaccountCode}`,
+    {
+      method: "PUT",
+      body: {
+        business_name: payload.businessName,
+        settlement_bank: payload.settlementBank,
+        account_number: payload.accountNumber,
+        bank_code: payload.bankCode ?? payload.settlementBank,
+        bank_account_number: payload.accountNumber,
+        bank_account_name: payload.accountName,
+        primary_contact_email: payload.primaryContactEmail,
+        primary_contact_name: payload.primaryContactName,
+        settlement_schedule: payload.settlementSchedule ?? "auto",
+        settlement_currency: payload.currency ?? "GHS",
+        business_type: payload.type,
+        metadata: payload.metadata,
+      },
+    }
+  );
 
   if (!response.status || !response.data) {
     throw createError({

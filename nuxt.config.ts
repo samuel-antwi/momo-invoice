@@ -38,4 +38,12 @@ export default defineNuxtConfig({
     key: process.env.SUPABASE_ANON_KEY,
     redirect: false,
   },
+
+  vite: {
+    server: {
+      hmr: {
+        port: 24678,
+      },
+    },
+  },
 });
