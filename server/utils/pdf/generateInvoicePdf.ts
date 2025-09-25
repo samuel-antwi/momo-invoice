@@ -14,15 +14,24 @@ let fontDescriptorsPromise: Promise<Record<string, { normal: string; bold: strin
 const prepareFonts = async () => {
   if (!fontDescriptorsPromise) {
     fontDescriptorsPromise = (async () => {
-      const vfs = loadPdfmakeVfs();
+      const vfs = await loadPdfmakeVfs();
+
+      const requiredFonts = [
+        "Roboto-Regular.ttf",
+        "Roboto-Medium.ttf",
+        "Roboto-Italic.ttf",
+        "Roboto-MediumItalic.ttf",
+      ] as const;
+
+      const missing = requiredFonts.filter((name) => !vfs[name]);
+      if (missing.length > 0) {
+        throw new Error(`Missing fonts in pdfmake bundle: ${missing.join(", ")}`);
+      }
 
       const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pdfmake-fonts-"));
 
-      const writeFont = async (name: string) => {
+      const writeFont = async (name: (typeof requiredFonts)[number]) => {
         const data = vfs[name];
-        if (!data) {
-          throw new Error(`Font ${name} missing in pdfmake bundle`);
-        }
         const target = path.join(dir, name);
         await fs.writeFile(target, Buffer.from(data, "base64"));
         return target;

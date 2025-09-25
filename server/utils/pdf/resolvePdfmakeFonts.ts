@@ -1,19 +1,53 @@
 import { createRequire } from "node:module";
 
-const require = createRequire(import.meta.url);
-
-// pdfmake publishes both ESM and CJS bundles. In serverless (Nitro on Vercel) we need a synchronous require.
-// The Roboto fonts are embedded in the CJS vfs bundle.
-export const loadPdfmakeVfs = () => {
+const loadModule = async (specifier: string): Promise<any> => {
   try {
-    const cjs = require("pdfmake/build/vfs_fonts.cjs");
-    if (cjs?.pdfMake?.vfs) return cjs.pdfMake.vfs;
+    // Try direct import first
+    return await import(specifier);
   } catch (error) {
-    // ignore, fall through to .js fallback
+    try {
+      // Try using require.resolve to get the actual path
+      const require = createRequire(import.meta.url);
+      const resolvedPath = require.resolve(specifier);
+      return await import(resolvedPath);
+    } catch (innerError) {
+      console.error(`Unable to load pdfmake font bundle: ${specifier}`, innerError);
+      return null;
+    }
+  }
+};
+
+const extractVfs = (mod: any): Record<string, string> | undefined => {
+  if (!mod) return undefined;
+
+  // Check for nested pdfMake.vfs structure
+  if (mod.pdfMake?.vfs) return mod.pdfMake.vfs;
+  if (mod.default?.pdfMake?.vfs) return mod.default.pdfMake.vfs;
+
+  // Check for direct font files in default export (newer pdfmake structure)
+  if (typeof mod.default === "object") {
+    const fonts = Object.keys(mod.default);
+    if (fonts.some(key => key.endsWith('.ttf'))) {
+      return mod.default;
+    }
   }
 
-  const fallback = require("pdfmake/build/vfs_fonts.js");
-  if (fallback?.pdfMake?.vfs) return fallback.pdfMake.vfs;
-  if (typeof fallback === "object" && fallback !== null) return fallback;
+  return undefined;
+};
+
+export const loadPdfmakeVfs = async (): Promise<Record<string, string>> => {
+  // Only try the .js file since .cjs doesn't exist in current pdfmake versions
+  const esmModule = await loadModule("pdfmake/build/vfs_fonts.js");
+  const esmVfs = extractVfs(esmModule);
+  if (esmVfs) return esmVfs;
+
+  // Fallback: check if the module itself contains font data
+  if (esmModule && typeof esmModule === "object") {
+    const entry = Object.entries(esmModule).filter(([, value]) => typeof value === "string");
+    if (entry.length > 0) {
+      return Object.fromEntries(entry) as Record<string, string>;
+    }
+  }
+
   throw new Error("Unable to load pdfmake virtual font data");
 };
