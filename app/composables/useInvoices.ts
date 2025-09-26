@@ -9,6 +9,7 @@ const defaultSummary = (): DashboardSummary => ({
   sentCount: 0,
   paidCount: 0,
   overdueCount: 0,
+  unpaidCount: 0,
   pendingCount: 0,
   activeClients: 0,
 });

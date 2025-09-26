@@ -48,6 +48,7 @@ export default defineEventHandler(async (event) => {
   let sentCount = 0;
   let paidCount = 0;
   let overdueCount = 0;
+  let unpaidCount = 0;
   const activeClientIds = new Set<string>();
   const mapped = invoiceRows.map((invoice) => {
     const record = mapInvoiceRow(invoice);
@@ -61,6 +62,7 @@ export default defineEventHandler(async (event) => {
         break;
       case "sent":
         sentCount += 1;
+        unpaidCount += 1;
         outstanding += record.total ?? 0;
         if (record.dueDate && new Date(record.dueDate) < now) {
           overdueCount += 1;
@@ -69,6 +71,7 @@ export default defineEventHandler(async (event) => {
         break;
       case "overdue":
         overdueCount += 1;
+        unpaidCount += 1;
         overdueTotal += record.total ?? 0;
         outstanding += record.total ?? 0;
         break;
@@ -80,7 +83,10 @@ export default defineEventHandler(async (event) => {
   });
 
   const overdueInvoices = mapped
-    .filter((invoice) => invoice.status === "overdue" || (invoice.dueDate && new Date(invoice.dueDate) < now))
+    .filter((invoice) =>
+      invoice.status !== "paid" &&
+      (invoice.status === "overdue" || (invoice.dueDate && new Date(invoice.dueDate) < now))
+    )
     .map((invoice) => {
       const dueDate = invoice.dueDate ? new Date(invoice.dueDate) : now;
       const daysOverdue = Math.max(0, Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
@@ -116,6 +122,7 @@ export default defineEventHandler(async (event) => {
       sentCount,
       paidCount,
       overdueCount,
+      unpaidCount,
       pendingCount: sentCount + overdueCount,
       activeClients: activeClientIds.size,
     },

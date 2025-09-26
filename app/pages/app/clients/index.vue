@@ -1331,7 +1331,7 @@ const getProviderColor = (provider: string) => {
                 />
               </UFormGroup>
               <UFormGroup
-                label="Business name"
+                label="Business Name"
                 name="businessName"
                 :ui="formGroupUi"
               >

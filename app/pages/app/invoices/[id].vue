@@ -19,11 +19,28 @@ const route = useRoute();
 const router = useRouter();
 const invoiceId = computed(() => route.params.id as string);
 
-const { invoices, markPaid, setStatus, markShared } = useInvoices();
+const {
+  invoices,
+  markPaid,
+  setStatus,
+  markShared,
+  refresh: refreshInvoices,
+} = useInvoices();
 const { clients } = useClients();
 const { profile } = useSession();
 const toast = useToast();
 const runtimeConfig = useRuntimeConfig();
+
+// Fetch fresh invoice data when the component loads or ID changes
+watch(
+  invoiceId,
+  async (newId) => {
+    if (newId) {
+      await refreshInvoices();
+    }
+  },
+  { immediate: true }
+);
 
 const appUrl = ref<string | undefined>(
   runtimeConfig.public.appUrl?.replace(/\/$/, "")
@@ -471,7 +488,7 @@ const copyPdfLink = async () => {
           size="sm"
           @click="goBack"
         >
-          Back
+          All Invoices
         </UButton>
         <div class="text-center">
           <h1 class="font-semibold text-slate-900 text-lg">
@@ -488,9 +505,13 @@ const copyPdfLink = async () => {
       <div
         class="mt-6 relative overflow-hidden rounded-3xl"
         :class="[
-          isPaid
+          invoice.status === 'paid'
             ? 'bg-gradient-to-r from-emerald-500 to-emerald-600'
-            : 'bg-gradient-to-r from-amber-500 to-orange-500',
+            : invoice.status === 'overdue'
+            ? 'bg-gradient-to-r from-red-500 to-red-600'
+            : invoice.status === 'sent'
+            ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+            : 'bg-gradient-to-r from-amber-500 to-amber-600',
         ]"
       >
         <div class="absolute inset-0 bg-black/10"></div>
@@ -528,13 +549,15 @@ const copyPdfLink = async () => {
             <UButton
               v-if="!isPaid"
               color="neutral"
-              class="flex-1 bg-white text-amber-600 hover:bg-white/90"
+              class="flex-1 bg-white text-indigo-600 font-semibold hover:bg-white/95 border-0 shadow-lg shadow-indigo-500/20"
               :loading="isInitializingPayment"
               @click="launchPaystackPayment"
             >
               <template #leading>
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M4 7c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V7zm2 0v10h12V7H6zm2 2h8v2H8V9zm0 3h6v1H8v-1z"/>
+                  <path
+                    d="M4 7c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V7zm2 0v10h12V7H6zm2 2h8v2H8V9zm0 3h6v1H8v-1z"
+                  />
                 </svg>
               </template>
               Collect Payment
@@ -543,15 +566,16 @@ const copyPdfLink = async () => {
             <UButton
               v-if="whatsappShareUrl"
               color="neutral"
-              variant="outline"
-              class="flex-1 border-white/30 text-white hover:bg-white/10"
+              class="flex-1 bg-white/15 text-white border border-white/20 hover:bg-white/25 backdrop-blur-sm"
               :href="whatsappShareUrl"
               target="_blank"
               @click="markInvoiceShared"
             >
               <template #leading>
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.488"/>
+                  <path
+                    d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.488"
+                  />
                 </svg>
               </template>
               Send via WhatsApp
@@ -566,7 +590,9 @@ const copyPdfLink = async () => {
             >
               <template #leading>
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                  <path
+                    d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+                  />
                 </svg>
               </template>
               Share Link
@@ -853,8 +879,14 @@ const copyPdfLink = async () => {
               <a :href="emailShareUrl" class="block">
                 <div class="text-center text-white">
                   <div class="mb-2">
-                    <svg class="w-6 h-6 mx-auto" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    <svg
+                      class="w-6 h-6 mx-auto"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"
+                      />
                     </svg>
                   </div>
                   <div class="font-semibold text-sm">Send Email</div>
@@ -870,8 +902,14 @@ const copyPdfLink = async () => {
             >
               <div class="text-center text-white">
                 <div class="mb-2">
-                  <svg class="w-6 h-6 mx-auto" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+                  <svg
+                    class="w-6 h-6 mx-auto"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"
+                    />
                   </svg>
                 </div>
                 <div class="font-semibold text-sm">Copy Link</div>
@@ -880,7 +918,7 @@ const copyPdfLink = async () => {
 
             <!-- PDF Link -->
             <div
-              class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 p-4 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600 p-4 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
               :class="{
                 'opacity-50 pointer-events-none': !invoicePublicPdfUrl,
               }"
@@ -888,8 +926,14 @@ const copyPdfLink = async () => {
             >
               <div class="text-center text-white">
                 <div class="mb-2">
-                  <svg class="w-6 h-6 mx-auto" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                  <svg
+                    class="w-6 h-6 mx-auto"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
+                    />
                   </svg>
                 </div>
                 <div class="font-semibold text-sm">PDF Link</div>

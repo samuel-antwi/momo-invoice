@@ -42,7 +42,9 @@ watch(
 const isProfileLoading = computed(() => pending.value && !profile.value.id);
 
 const canSubmit = computed(() => {
-  return Boolean(name.value.trim() && email.value.trim() && !isSubmitting.value);
+  return Boolean(
+    name.value.trim() && email.value.trim() && !isSubmitting.value
+  );
 });
 
 const handleSubmit = async () => {
@@ -61,7 +63,9 @@ const handleSubmit = async () => {
     });
     router.replace("/app/dashboard").catch(() => {});
   } catch (error: any) {
-    errorMessage.value = error?.message ?? "We couldn't save your business details. Please try again.";
+    errorMessage.value =
+      error?.message ??
+      "We couldn't save your business details. Please try again.";
   } finally {
     isSubmitting.value = false;
   }
@@ -72,10 +76,14 @@ const handleSubmit = async () => {
   <div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="mx-auto max-w-3xl">
       <div class="mb-10 text-center">
-        <div class="mx-auto mb-4 h-12 w-12 rounded-xl bg-amber-500 flex items-center justify-center text-white text-xl font-bold">
+        <div
+          class="mx-auto mb-4 h-12 w-12 rounded-xl bg-amber-500 flex items-center justify-center text-white text-xl font-bold"
+        >
           M
         </div>
-        <h1 class="text-3xl font-semibold text-gray-900">Set up your business</h1>
+        <h1 class="text-3xl font-semibold text-gray-900">
+          Set up your business
+        </h1>
         <p class="mt-2 text-sm text-gray-600">
           Tell us a few details so your invoices look professional from day one.
         </p>
@@ -89,8 +97,11 @@ const handleSubmit = async () => {
         <form class="space-y-8" @submit.prevent="handleSubmit">
           <div class="grid gap-6 sm:grid-cols-2">
             <div class="sm:col-span-2">
-              <label for="business-name" class="block text-sm font-medium text-gray-700 mb-2">
-                Business name
+              <label
+                for="business-name"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Business Name
               </label>
               <input
                 id="business-name"
@@ -103,7 +114,10 @@ const handleSubmit = async () => {
             </div>
 
             <div class="sm:col-span-2">
-              <label for="business-email" class="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                for="business-email"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Business email
               </label>
               <input
@@ -117,7 +131,10 @@ const handleSubmit = async () => {
             </div>
 
             <div>
-              <label for="business-phone" class="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                for="business-phone"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Phone number
               </label>
               <input
@@ -130,7 +147,10 @@ const handleSubmit = async () => {
             </div>
 
             <div>
-              <label for="business-whatsapp" class="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                for="business-whatsapp"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
                 WhatsApp number
               </label>
               <input
@@ -143,7 +163,10 @@ const handleSubmit = async () => {
             </div>
 
             <div class="sm:col-span-2">
-              <label for="business-address" class="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                for="business-address"
+                class="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Business location or notes
               </label>
               <textarea
@@ -156,7 +179,10 @@ const handleSubmit = async () => {
             </div>
           </div>
 
-          <div v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <div
+            v-if="errorMessage"
+            class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          >
             {{ errorMessage }}
           </div>
 
@@ -168,8 +194,11 @@ const handleSubmit = async () => {
               :disabled="!canSubmit"
               class="flex items-center justify-center gap-2"
             >
-              <span v-if="isSubmitting" class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-              <span>{{ isSubmitting ? 'Saving…' : 'Save and continue' }}</span>
+              <span
+                v-if="isSubmitting"
+                class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+              ></span>
+              <span>{{ isSubmitting ? "Saving…" : "Save and continue" }}</span>
             </UButton>
           </div>
         </form>

@@ -31,7 +31,11 @@ const notesFieldId = useId();
 const route = useRoute();
 const { invoices, createInvoice, editInvoice, refresh } = useInvoices();
 const { clients, createClient } = useClients();
-const { paymentMethods: savedPaymentMethods, defaultMethod, createPaymentMethod } = usePaymentMethods();
+const {
+  paymentMethods: savedPaymentMethods,
+  defaultMethod,
+  createPaymentMethod,
+} = usePaymentMethods();
 const { profile } = useSession();
 const isInitialising = ref(false);
 
@@ -42,7 +46,8 @@ const editInvoiceId = computed(() => {
   }
   const queryId = route.query.edit;
   const normalize = (value?: string) => {
-    if (!value || value === "undefined" || value.trim() === "") return undefined;
+    if (!value || value === "undefined" || value.trim() === "")
+      return undefined;
     return value;
   };
   if (typeof queryId === "string") return normalize(queryId);
@@ -53,7 +58,9 @@ const editInvoiceId = computed(() => {
 const isEditMode = computed(() => Boolean(editInvoiceId.value));
 
 const editingInvoice = computed(() =>
-  editInvoiceId.value ? invoices.value.find((invoice) => invoice.id === editInvoiceId.value) : undefined,
+  editInvoiceId.value
+    ? invoices.value.find((invoice) => invoice.id === editInvoiceId.value)
+    : undefined
 );
 
 const momoProviderOptions = [
@@ -66,31 +73,31 @@ const momoProviderOptions = [
 const formGroupUi = {
   label: "text-sm font-medium text-slate-700",
   description: "text-xs text-slate-500",
-  wrapper: "space-y-2"
+  wrapper: "space-y-2",
 };
 
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
-  quantity: z
-    .coerce
+  quantity: z.coerce
     .number({ invalid_type_error: "Quantity must be a number" })
     .positive("Quantity must be greater than zero"),
-  unitPrice: z
-    .coerce
+  unitPrice: z.coerce
     .number({ invalid_type_error: "Unit price must be a number" })
     .min(0, "Unit price cannot be negative"),
   taxRate: z
     .union([z.coerce.number().min(0).max(100), z.literal(""), z.null()])
     .optional()
     .transform((value) => {
-      if (value === "" || value === null || value === undefined) return undefined;
+      if (value === "" || value === null || value === undefined)
+        return undefined;
       return Number(value);
     }),
   discount: z
     .union([z.coerce.number().min(0), z.literal(""), z.null()])
     .optional()
     .transform((value) => {
-      if (value === "" || value === null || value === undefined) return undefined;
+      if (value === "" || value === null || value === undefined)
+        return undefined;
       return Number(value);
     }),
 });
@@ -172,21 +179,21 @@ const clientSchema = z.object({
   businessName: optionalTrimmed(),
   email: optionalTrimmed().refine(
     (value) => !value || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value),
-    { message: "Enter a valid email" },
+    { message: "Enter a valid email" }
   ),
-  phone: optionalTrimmed().refine(
-    (value) => !value || value.length >= 3,
-    { message: "Enter a valid phone number" },
-  ),
+  phone: optionalTrimmed().refine((value) => !value || value.length >= 3, {
+    message: "Enter a valid phone number",
+  }),
   whatsappNumber: optionalTrimmed().refine(
     (value) => !value || value.length >= 3,
-    { message: "Enter a valid WhatsApp number" },
+    { message: "Enter a valid WhatsApp number" }
   ),
-  momoProvider: z.enum(["mtn", "vodafone", "airteltigo", "other"]).default("mtn"),
-  notes: optionalTrimmed().refine(
-    (value) => !value || value.length <= 1000,
-    { message: "Notes must be 1000 characters or less" },
-  ),
+  momoProvider: z
+    .enum(["mtn", "vodafone", "airteltigo", "other"])
+    .default("mtn"),
+  notes: optionalTrimmed().refine((value) => !value || value.length <= 1000, {
+    message: "Notes must be 1000 characters or less",
+  }),
 });
 
 type ClientFormInput = z.input<typeof clientSchema>;
@@ -200,15 +207,15 @@ const paymentMethodSchema = z.object({
   provider: z.enum(["mtn", "vodafone", "airteltigo", "other"]).optional(),
   accountName: optionalTrimmed().refine(
     (value) => !value || value.length <= 255,
-    { message: "Payable name must be 255 characters or less" },
+    { message: "Payable name must be 255 characters or less" }
   ),
   accountNumber: optionalTrimmed().refine(
     (value) => !value || value.length <= 255,
-    { message: "Account number must be 255 characters or less" },
+    { message: "Account number must be 255 characters or less" }
   ),
   instructions: optionalTrimmed().refine(
     (value) => !value || value.length <= 2000,
-    { message: "Instructions must be 2000 characters or less" },
+    { message: "Instructions must be 2000 characters or less" }
   ),
   isDefault: z.boolean().optional(),
 });
@@ -257,7 +264,8 @@ const populateStateFromInvoice = (invoice: InvoiceRecord) => {
     description: item.description,
     quantity: item.quantity,
     unitPrice: item.unitPrice,
-    taxRate: item.taxRate !== undefined ? Number(item.taxRate) * 100 : undefined,
+    taxRate:
+      item.taxRate !== undefined ? Number(item.taxRate) * 100 : undefined,
     discount: item.discount ?? undefined,
   }));
   if (state.lineItems.length === 0) {
@@ -279,20 +287,26 @@ const clientOptions = computed(() =>
     label: client.fullName,
     value: client.id,
     description: client.businessName || client.email || client.phone,
-  })),
+  }))
 );
 
 const paymentMethodOptions = computed(() =>
   savedPaymentMethods.value.map((method) => ({
     label: method.label,
     value: method.id,
-    description: [method.accountName, method.accountNumber].filter(Boolean).join(" • ") || undefined,
-  })),
+    description:
+      [method.accountName, method.accountNumber].filter(Boolean).join(" • ") ||
+      undefined,
+  }))
 );
 
-const selectedClient = computed(() => clients.value.find((client) => client.id === state.clientId));
+const selectedClient = computed(() =>
+  clients.value.find((client) => client.id === state.clientId)
+);
 const selectedPaymentMethod = computed(() =>
-  savedPaymentMethods.value.find((method) => method.id === state.paymentMethodId),
+  savedPaymentMethods.value.find(
+    (method) => method.id === state.paymentMethodId
+  )
 );
 
 const hasInitialisedEdit = ref(false);
@@ -309,16 +323,26 @@ watch(
       await refresh();
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
-const headerTagline = computed(() => (isEditMode.value ? "Edit invoice" : "New invoice"));
-const headerTitle = computed(() => (isEditMode.value ? "Update invoice" : "Create invoice"));
-const primaryActionLabel = computed(() => (isEditMode.value ? "Update invoice" : "Save invoice"));
-const cancelLink = computed(() =>
-  isEditMode.value && editInvoiceId.value ? `/app/invoices/${editInvoiceId.value}` : "/app/invoices",
+const headerTagline = computed(() =>
+  isEditMode.value ? "Edit invoice" : "New invoice"
 );
-const isFormReady = computed(() => !isEditMode.value || hasInitialisedEdit.value);
+const headerTitle = computed(() =>
+  isEditMode.value ? "Update invoice" : "Create invoice"
+);
+const primaryActionLabel = computed(() =>
+  isEditMode.value ? "Update invoice" : "Save invoice"
+);
+const cancelLink = computed(() =>
+  isEditMode.value && editInvoiceId.value
+    ? `/app/invoices/${editInvoiceId.value}`
+    : "/app/invoices"
+);
+const isFormReady = computed(
+  () => !isEditMode.value || hasInitialisedEdit.value
+);
 
 watch(
   editingInvoice,
@@ -329,7 +353,7 @@ watch(
       hasInitialisedEdit.value = true;
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(
@@ -338,7 +362,7 @@ watch(
     if (isEditMode.value || isInitialising.value) return;
     state.currency = currency || "GHS";
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 const activeCurrency = computed(() => (state.currency || "GHS").toUpperCase());
@@ -348,7 +372,10 @@ const applyPaymentMethodDefaults = (method?: PaymentMethod | null) => {
   if (method.accountName) {
     state.payableTo = method.accountName;
   }
-  const hasInstructions = Boolean(state.paymentInstructions && state.paymentInstructions.toString().trim().length > 0);
+  const hasInstructions = Boolean(
+    state.paymentInstructions &&
+      state.paymentInstructions.toString().trim().length > 0
+  );
   if (method.instructions) {
     state.paymentInstructions = method.instructions;
   } else if (!hasInstructions && method.accountNumber) {
@@ -364,7 +391,9 @@ const applyPaymentMethodDefaults = (method?: PaymentMethod | null) => {
           return "Paystack checkout";
       }
     })();
-    const destination = method.accountNumber ? ` to account ${method.accountNumber}` : "";
+    const destination = method.accountNumber
+      ? ` to account ${method.accountNumber}`
+      : "";
     state.paymentInstructions = `Collect payment through ${providerLabel}${destination}.`;
   }
 };
@@ -373,13 +402,18 @@ watch(
   defaultMethod,
   (method) => {
     if (!method || isInitialising.value) return;
-    if (isEditMode.value && state.paymentMethodId && state.paymentMethodId !== "") return;
+    if (
+      isEditMode.value &&
+      state.paymentMethodId &&
+      state.paymentMethodId !== ""
+    )
+      return;
     if (!state.paymentMethodId || state.paymentMethodId === "") {
       state.paymentMethodId = method.id;
       applyPaymentMethodDefaults(method);
     }
   },
-  { immediate: true },
+  { immediate: true }
 );
 
 watch(
@@ -388,7 +422,7 @@ watch(
     if (!id || isInitialising.value) return;
     const method = savedPaymentMethods.value.find((item) => item.id === id);
     applyPaymentMethodDefaults(method);
-  },
+  }
 );
 
 const totals = computed(() => {
@@ -399,14 +433,22 @@ const totals = computed(() => {
   }, 0);
 
   const taxTotal = state.lineItems.reduce((sum, item) => {
-    if (item.taxRate === undefined || item.taxRate === "" || item.taxRate === null) return sum;
+    if (
+      item.taxRate === undefined ||
+      item.taxRate === "" ||
+      item.taxRate === null
+    )
+      return sum;
     const quantity = Number(item.quantity) || 0;
     const price = Number(item.unitPrice) || 0;
     const rate = Number(item.taxRate) / 100;
     return sum + quantity * price * rate;
   }, 0);
 
-  const discountTotal = state.lineItems.reduce((sum, item) => sum + (Number(item.discount) || 0), 0);
+  const discountTotal = state.lineItems.reduce(
+    (sum, item) => sum + (Number(item.discount) || 0),
+    0
+  );
   const total = subtotal + taxTotal - discountTotal;
 
   return { subtotal, taxTotal, discountTotal, total };
@@ -430,7 +472,8 @@ const addLineItem = () => {
   });
 };
 
-const lineItemFieldId = (index: number, field: string) => `invoice-line-${index}-${field}`;
+const lineItemFieldId = (index: number, field: string) =>
+  `invoice-line-${index}-${field}`;
 
 const removeLineItem = (index: number) => {
   if (state.lineItems.length <= 1) return;
@@ -458,14 +501,20 @@ const handleSubmit = async (event: FormSubmitEvent<FormSubmit>) => {
       description: item.description.trim(),
       quantity: Number(item.quantity),
       unitPrice: Number(item.unitPrice),
-      taxRate: item.taxRate !== undefined ? Number(item.taxRate) / 100 : undefined,
+      taxRate:
+        item.taxRate !== undefined ? Number(item.taxRate) / 100 : undefined,
       discount: item.discount !== undefined ? Number(item.discount) : undefined,
     }));
 
     const dueDateIso = toIsoString(event.data.dueDate ?? null);
-    const notesValue = event.data.notes === undefined ? undefined : event.data.notes;
-    const instructionsValue = event.data.paymentInstructions === undefined ? undefined : event.data.paymentInstructions;
-    const payableToValue = event.data.payableTo === undefined ? undefined : event.data.payableTo;
+    const notesValue =
+      event.data.notes === undefined ? undefined : event.data.notes;
+    const instructionsValue =
+      event.data.paymentInstructions === undefined
+        ? undefined
+        : event.data.paymentInstructions;
+    const payableToValue =
+      event.data.payableTo === undefined ? undefined : event.data.payableTo;
 
     if (isEditMode.value) {
       const invoice = editingInvoice.value;
@@ -503,7 +552,10 @@ const handleSubmit = async (event: FormSubmitEvent<FormSubmit>) => {
       dueDate: dueDateIso,
       status: "draft",
       currency: activeCurrency.value,
-      paymentMethodId: event.data.paymentMethodId === null ? undefined : event.data.paymentMethodId,
+      paymentMethodId:
+        event.data.paymentMethodId === null
+          ? undefined
+          : event.data.paymentMethodId,
       notes: notesValue,
       paymentInstructions: instructionsValue,
       payableTo: payableToValue,
@@ -520,12 +572,19 @@ const handleSubmit = async (event: FormSubmitEvent<FormSubmit>) => {
 
     await router.push(`/app/invoices/${created.id}`);
   } catch (error) {
-    const validation = (error as { data?: { errors?: Record<string, string[]> } }).data?.errors;
-    const serverMessage = validation ? Object.values(validation).flat()[0] : undefined;
+    const validation = (
+      error as { data?: { errors?: Record<string, string[]> } }
+    ).data?.errors;
+    const serverMessage = validation
+      ? Object.values(validation).flat()[0]
+      : undefined;
     const fallback = error instanceof Error ? error.message : undefined;
     toast.add({
       title: "Unable to create invoice",
-      description: serverMessage || fallback || "We couldn't save the invoice. Please try again.",
+      description:
+        serverMessage ||
+        fallback ||
+        "We couldn't save the invoice. Please try again.",
       color: "red",
     });
   } finally {
@@ -619,12 +678,19 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
     state.clientId = created.id;
     isClientDrawerOpen.value = false;
   } catch (error) {
-    const validation = (error as { data?: { errors?: Record<string, string[]> } }).data?.errors;
-    const serverMessage = validation ? Object.values(validation).flat()[0] : undefined;
+    const validation = (
+      error as { data?: { errors?: Record<string, string[]> } }
+    ).data?.errors;
+    const serverMessage = validation
+      ? Object.values(validation).flat()[0]
+      : undefined;
     const fallback = error instanceof Error ? error.message : undefined;
     toast.add({
       title: "Unable to add client",
-      description: serverMessage || fallback || "Something went wrong while saving the client.",
+      description:
+        serverMessage ||
+        fallback ||
+        "Something went wrong while saving the client.",
       color: "red",
     });
   } finally {
@@ -632,7 +698,9 @@ const handleClientSubmit = async (event: FormSubmitEvent<ClientFormSubmit>) => {
   }
 };
 
-const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFormSubmit>) => {
+const handlePaymentMethodSubmit = async (
+  event: FormSubmitEvent<PaymentMethodFormSubmit>
+) => {
   if (isCreatingPaymentMethod.value) return;
   isCreatingPaymentMethod.value = true;
 
@@ -658,12 +726,19 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
     applyPaymentMethodDefaults(created);
     isPaymentMethodDrawerOpen.value = false;
   } catch (error) {
-    const validation = (error as { data?: { errors?: Record<string, string[]> } }).data?.errors;
-    const serverMessage = validation ? Object.values(validation).flat()[0] : undefined;
+    const validation = (
+      error as { data?: { errors?: Record<string, string[]> } }
+    ).data?.errors;
+    const serverMessage = validation
+      ? Object.values(validation).flat()[0]
+      : undefined;
     const fallback = error instanceof Error ? error.message : undefined;
     toast.add({
       title: "Unable to save payment method",
-      description: serverMessage || fallback || "We couldn't save the payment method. Please try again.",
+      description:
+        serverMessage ||
+        fallback ||
+        "We couldn't save the payment method. Please try again.",
       color: "red",
     });
   } finally {
@@ -675,14 +750,20 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
 <template>
   <div class="min-h-screen pb-20">
     <!-- Mobile-First Header -->
-    <header class="sticky top-0 z-20 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 backdrop-blur-xl border-b border-amber-100/50">
+    <header
+      class="sticky top-0 z-20 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 backdrop-blur-xl border-b border-amber-100/50"
+    >
       <div class="px-4 py-3 sm:px-6 sm:py-4">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <h1 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+            <h1
+              class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent"
+            >
               {{ headerTitle }}
             </h1>
-            <p class="text-xs sm:text-sm text-gray-600 mt-0.5">Quick & easy invoice creation</p>
+            <p class="text-xs sm:text-sm text-gray-600 mt-0.5">
+              Quick & easy invoice creation
+            </p>
           </div>
           <div class="flex items-center gap-2">
             <UButton
@@ -713,15 +794,28 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
 
     <!-- Mobile-optimized form -->
     <div class="px-4 py-6 sm:px-6 max-w-7xl mx-auto">
-      <UForm v-if="isFormReady" :id="formId" :schema="schema" :state="state" @submit="handleSubmit">
+      <UForm
+        v-if="isFormReady"
+        :id="formId"
+        :schema="schema"
+        :state="state"
+        @submit="handleSubmit"
+      >
         <!-- Client Selection Section -->
         <div class="mb-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-blue-100">
+          <div class="bg-white shadow-sm border border-gray-100 rounded-2xl">
+            <div
+              class="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-blue-100 rounded-t-2xl"
+            >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <UIcon name="i-heroicons-user-circle" class="w-5 h-5 text-blue-600" />
+                  <div
+                    class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center"
+                  >
+                    <UIcon
+                      name="i-heroicons-user-circle"
+                      class="w-5 h-5 text-blue-600"
+                    />
                   </div>
                   <h2 class="font-semibold text-gray-900">Client Details</h2>
                 </div>
@@ -737,7 +831,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
               </div>
             </div>
             <div class="p-4">
-              <UFormGroup
+              <UFormField
                 label="Select Client"
                 name="clientId"
                 required
@@ -751,26 +845,35 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                   placeholder="Choose a client..."
                   search-input
                   size="lg"
-                  :ui="{
-                    wrapper: 'relative',
-                    base: 'relative block w-full disabled:cursor-not-allowed disabled:opacity-75 focus:outline-none border border-gray-200 rounded-xl',
-                    placeholder: 'text-gray-500',
-                  }"
                 >
                   <template #option="{ option }">
                     <div>
                       <p class="font-medium">{{ option.label }}</p>
-                      <p v-if="option.description" class="text-xs text-gray-500">{{ option.description }}</p>
+                      <p
+                        v-if="option.description"
+                        class="text-xs text-gray-500"
+                      >
+                        {{ option.description }}
+                      </p>
                     </div>
                   </template>
                 </USelectMenu>
-              </UFormGroup>
+              </UFormField>
 
               <!-- Selected Client Preview -->
               <div v-if="selectedClient" class="mt-3 p-3 bg-blue-50 rounded-xl">
-                <p class="text-sm font-medium text-blue-900">{{ selectedClient.fullName }}</p>
-                <p v-if="selectedClient.phone" class="text-xs text-blue-700 mt-0.5">📱 {{ selectedClient.phone }}</p>
-                <p v-if="selectedClient.email" class="text-xs text-blue-700">✉️ {{ selectedClient.email }}</p>
+                <p class="text-sm font-medium text-blue-900">
+                  {{ selectedClient.fullName }}
+                </p>
+                <p
+                  v-if="selectedClient.phone"
+                  class="text-xs text-blue-700 mt-0.5"
+                >
+                  📱 {{ selectedClient.phone }}
+                </p>
+                <p v-if="selectedClient.email" class="text-xs text-blue-700">
+                  ✉️ {{ selectedClient.email }}
+                </p>
               </div>
             </div>
           </div>
@@ -778,18 +881,25 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
 
         <!-- Invoice Details Section -->
         <div class="mb-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3 border-b border-purple-100">
+          <div class="bg-white shadow-sm border border-gray-100 rounded-2xl">
+            <div
+              class="bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3 border-b border-purple-100 rounded-t-2xl"
+            >
               <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-purple-600" />
+                <div
+                  class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center"
+                >
+                  <UIcon
+                    name="i-heroicons-document-text"
+                    class="w-5 h-5 text-purple-600"
+                  />
                 </div>
                 <h2 class="font-semibold text-gray-900">Invoice Information</h2>
               </div>
             </div>
             <div class="p-4 space-y-5">
               <div class="grid grid-cols-2 gap-4">
-                <UFormGroup
+                <UFormField
                   label="Issue Date"
                   name="issueDate"
                   required
@@ -800,33 +910,19 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                     v-model="state.issueDate"
                     type="date"
                     size="lg"
-                    :ui="{
-                      base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500',
-                    }"
                   />
-                </UFormGroup>
-                <UFormGroup
-                  label="Due Date"
-                  name="dueDate"
-                  :ui="formGroupUi"
-                >
+                </UFormField>
+                <UFormField label="Due Date" name="dueDate" :ui="formGroupUi">
                   <UInput
                     :id="dueDateFieldId"
                     v-model="state.dueDate"
                     type="date"
                     size="lg"
-                    :ui="{
-                      base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500',
-                    }"
                   />
-                </UFormGroup>
+                </UFormField>
               </div>
 
-              <UFormGroup
-                label="Currency"
-                name="currency"
-                :ui="formGroupUi"
-              >
+              <UFormField label="Currency" name="currency" :ui="formGroupUi">
                 <UInput
                   :id="currencyFieldId"
                   v-model="state.currency"
@@ -834,23 +930,27 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                   placeholder="GHS"
                   class="uppercase"
                   size="lg"
-                  :ui="{
-                    base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500',
-                  }"
                 />
-              </UFormGroup>
+              </UFormField>
             </div>
           </div>
         </div>
 
         <!-- Line Items Section -->
         <div class="mb-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3 border-b border-emerald-100">
+          <div class="bg-white shadow-sm border border-gray-100 rounded-2xl">
+            <div
+              class="bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3 border-b border-emerald-100 rounded-t-2xl"
+            >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                    <UIcon name="i-heroicons-shopping-cart" class="w-5 h-5 text-emerald-600" />
+                  <div
+                    class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center"
+                  >
+                    <UIcon
+                      name="i-heroicons-shopping-cart"
+                      class="w-5 h-5 text-emerald-600"
+                    />
                   </div>
                   <h2 class="font-semibold text-gray-900">Items</h2>
                 </div>
@@ -873,7 +973,9 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
               >
                 <!-- Item Header -->
                 <div class="flex items-center justify-between mb-3">
-                  <span class="text-sm font-semibold text-gray-700 bg-white px-2 py-1 rounded-lg">
+                  <span
+                    class="text-sm font-semibold text-gray-700 bg-white px-2 py-1 rounded-lg"
+                  >
                     Item {{ index + 1 }}
                   </span>
                   <UButton
@@ -889,7 +991,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
 
                 <!-- Item Fields -->
                 <div class="space-y-4">
-                  <UFormGroup
+                  <UFormField
                     label="Description"
                     :name="`lineItems.${index}.description`"
                     required
@@ -901,10 +1003,10 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                       placeholder="e.g., Website Design"
                       size="lg"
                     />
-                  </UFormGroup>
+                  </UFormField>
 
                   <div class="grid grid-cols-2 gap-4">
-                    <UFormGroup
+                    <UFormField
                       label="Quantity"
                       :name="`lineItems.${index}.quantity`"
                       required
@@ -918,9 +1020,9 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                         step="0.01"
                         size="lg"
                       />
-                    </UFormGroup>
+                    </UFormField>
 
-                    <UFormGroup
+                    <UFormField
                       label="Unit Price"
                       :name="`lineItems.${index}.unitPrice`"
                       required
@@ -934,11 +1036,11 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                         step="0.01"
                         size="lg"
                       />
-                    </UFormGroup>
+                    </UFormField>
                   </div>
 
                   <div class="grid grid-cols-2 gap-4">
-                    <UFormGroup
+                    <UFormField
                       label="Tax (%)"
                       :name="`lineItems.${index}.taxRate`"
                       :ui="formGroupUi"
@@ -953,9 +1055,9 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                         placeholder="0"
                         size="lg"
                       />
-                    </UFormGroup>
+                    </UFormField>
 
-                    <UFormGroup
+                    <UFormField
                       :label="`Discount (${activeCurrency})`"
                       :name="`lineItems.${index}.discount`"
                       :ui="formGroupUi"
@@ -969,14 +1071,20 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                         placeholder="0"
                         size="lg"
                       />
-                    </UFormGroup>
+                    </UFormField>
                   </div>
 
                   <!-- Line Total Preview -->
                   <div class="mt-2 p-2 bg-emerald-50 rounded-lg text-center">
                     <p class="text-xs text-emerald-600">Line Total</p>
                     <p class="text-lg font-bold text-emerald-700">
-                      {{ formatCurrency((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0), activeCurrency) }}
+                      {{
+                        formatCurrency(
+                          (Number(item.quantity) || 0) *
+                            (Number(item.unitPrice) || 0),
+                          activeCurrency
+                        )
+                      }}
                     </p>
                   </div>
                 </div>
@@ -987,12 +1095,19 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
 
         <!-- Payment Details Section -->
         <div class="mb-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-3 border-b border-amber-100">
+          <div class="bg-white shadow-sm border border-gray-100 rounded-2xl">
+            <div
+              class="bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-3 border-b border-amber-100 rounded-t-2xl"
+            >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                    <UIcon name="i-heroicons-credit-card" class="w-5 h-5 text-amber-600" />
+                  <div
+                    class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center"
+                  >
+                    <UIcon
+                      name="i-heroicons-credit-card"
+                      class="w-5 h-5 text-amber-600"
+                    />
                   </div>
                   <h2 class="font-semibold text-gray-900">Payment</h2>
                 </div>
@@ -1008,7 +1123,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
               </div>
             </div>
             <div class="p-4 space-y-5">
-              <UFormGroup
+              <UFormField
                 label="Payment Method"
                 name="paymentMethodId"
                 :ui="formGroupUi"
@@ -1021,37 +1136,31 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                   placeholder="Select payment method"
                   search-input
                   size="lg"
-                  :ui="{
-                    wrapper: 'relative',
-                    base: 'relative block w-full disabled:cursor-not-allowed disabled:opacity-75 focus:outline-none border border-gray-200 rounded-xl',
-                  }"
                 >
                   <template #option="{ option }">
                     <div>
                       <p class="font-medium">{{ option.label }}</p>
-                      <p v-if="option.description" class="text-xs text-gray-500">{{ option.description }}</p>
+                      <p
+                        v-if="option.description"
+                        class="text-xs text-gray-500"
+                      >
+                        {{ option.description }}
+                      </p>
                     </div>
                   </template>
                 </USelectMenu>
-              </UFormGroup>
+              </UFormField>
 
-              <UFormGroup
-                label="Payable To"
-                name="payableTo"
-                :ui="formGroupUi"
-              >
+              <UFormField label="Payable To" name="payableTo" :ui="formGroupUi">
                 <UInput
                   :id="payableToFieldId"
                   v-model="state.payableTo"
                   placeholder="Business or account name"
                   size="lg"
-                  :ui="{
-                    base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500',
-                  }"
                 />
-              </UFormGroup>
+              </UFormField>
 
-              <UFormGroup
+              <UFormField
                 label="Payment Instructions"
                 name="paymentInstructions"
                 :ui="formGroupUi"
@@ -1061,28 +1170,32 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                   v-model="state.paymentInstructions"
                   placeholder="How should the client pay?"
                   rows="3"
-                  :ui="{
-                    base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500',
-                  }"
                 />
-              </UFormGroup>
+              </UFormField>
             </div>
           </div>
         </div>
 
         <!-- Notes Section -->
         <div class="mb-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-4 py-3 border-b border-gray-200">
+          <div class="bg-white shadow-sm border border-gray-100 rounded-2xl">
+            <div
+              class="bg-gradient-to-r from-slate-50 to-gray-50 px-4 py-3 border-b border-gray-200 rounded-t-2xl"
+            >
               <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <UIcon name="i-heroicons-chat-bubble-left-right" class="w-5 h-5 text-gray-600" />
+                <div
+                  class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center"
+                >
+                  <UIcon
+                    name="i-heroicons-chat-bubble-left-right"
+                    class="w-5 h-5 text-gray-600"
+                  />
                 </div>
                 <h2 class="font-semibold text-gray-900">Additional Notes</h2>
               </div>
             </div>
             <div class="p-4">
-              <UFormGroup
+              <UFormField
                 label="Notes for Client"
                 name="notes"
                 :ui="formGroupUi"
@@ -1092,46 +1205,56 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                   v-model="state.notes"
                   placeholder="Any message for your client?"
                   rows="3"
-                  :ui="{
-                    base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-500',
-                  }"
                 />
-              </UFormGroup>
+              </UFormField>
             </div>
           </div>
         </div>
 
         <!-- Invoice Summary - Sticky on Mobile -->
-        <div class="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg rounded-t-2xl p-4 -mx-4 sm:relative sm:bottom-auto sm:shadow-none sm:border sm:rounded-2xl sm:mx-0">
+        <div
+          class="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg rounded-t-2xl p-4 -mx-4 sm:relative sm:bottom-auto sm:shadow-none sm:border sm:rounded-2xl sm:mx-0"
+        >
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-semibold text-gray-900">Summary</h3>
-            <span class="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+            <span
+              class="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent"
+            >
               {{ formatCurrency(totals.total, activeCurrency) }}
             </span>
           </div>
           <div class="space-y-2 text-sm">
             <div class="flex justify-between text-gray-600">
               <span>Subtotal</span>
-              <span class="font-medium">{{ formatCurrency(totals.subtotal, activeCurrency) }}</span>
+              <span class="font-medium">{{
+                formatCurrency(totals.subtotal, activeCurrency)
+              }}</span>
             </div>
-            <div v-if="totals.taxTotal > 0" class="flex justify-between text-gray-600">
+            <div
+              v-if="totals.taxTotal > 0"
+              class="flex justify-between text-gray-600"
+            >
               <span>Tax</span>
-              <span class="font-medium">{{ formatCurrency(totals.taxTotal, activeCurrency) }}</span>
+              <span class="font-medium">{{
+                formatCurrency(totals.taxTotal, activeCurrency)
+              }}</span>
             </div>
-            <div v-if="totals.discountTotal > 0" class="flex justify-between text-gray-600">
+            <div
+              v-if="totals.discountTotal > 0"
+              class="flex justify-between text-gray-600"
+            >
               <span>Discount</span>
-              <span class="font-medium text-emerald-600">-{{ formatCurrency(totals.discountTotal, activeCurrency) }}</span>
+              <span class="font-medium text-emerald-600"
+                >-{{
+                  formatCurrency(totals.discountTotal, activeCurrency)
+                }}</span
+              >
             </div>
           </div>
 
           <!-- Mobile Action Buttons -->
           <div class="mt-4 grid grid-cols-2 gap-2 sm:hidden">
-            <UButton
-              variant="outline"
-              color="gray"
-              :to="cancelLink"
-              block
-            >
+            <UButton variant="outline" color="gray" :to="cancelLink" block>
               Cancel
             </UButton>
             <UButton
@@ -1152,7 +1275,9 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
 
       <div v-else class="flex items-center justify-center py-12">
         <div class="text-center">
-          <div class="w-12 h-12 rounded-full bg-amber-100 animate-pulse mx-auto mb-3"></div>
+          <div
+            class="w-12 h-12 rounded-full bg-amber-100 animate-pulse mx-auto mb-3"
+          ></div>
           <p class="text-sm text-gray-500">Loading invoice details...</p>
         </div>
       </div>
@@ -1167,51 +1292,56 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
     :overlay="true"
   >
     <template #body>
-      <UForm :id="clientFormId" :schema="clientSchema" :state="clientFormState" @submit="handleClientSubmit">
+      <UForm
+        :id="clientFormId"
+        :schema="clientSchema"
+        :state="clientFormState"
+        @submit="handleClientSubmit"
+      >
         <div class="space-y-4">
-          <UFormGroup label="Full Name" name="fullName" required>
+          <UFormField label="Full Name" name="fullName" required>
             <UInput
               v-model="clientFormState.fullName"
               placeholder="Ama Boateng"
               size="lg"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup label="Business Name" name="businessName">
+          <UFormField label="Business Name" name="businessName">
             <UInput
               v-model="clientFormState.businessName"
               placeholder="Ama's Boutique"
               size="lg"
             />
-          </UFormGroup>
+          </UFormField>
 
           <div class="grid gap-4 sm:grid-cols-2">
-            <UFormGroup label="Email" name="email">
+            <UFormField label="Email" name="email">
               <UInput
                 v-model="clientFormState.email"
                 type="email"
                 placeholder="ama@example.com"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Phone" name="phone">
+            <UFormField label="Phone" name="phone">
               <UInput
                 v-model="clientFormState.phone"
                 placeholder="+233200000000"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="WhatsApp" name="whatsappNumber">
+            <UFormField label="WhatsApp" name="whatsappNumber">
               <UInput
                 v-model="clientFormState.whatsappNumber"
                 placeholder="233200000000"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="MoMo Provider" name="momoProvider" required>
+            <UFormField label="MoMo Provider" name="momoProvider" required>
               <USelectMenu
                 v-model="clientFormState.momoProvider"
                 :items="momoProviderOptions"
@@ -1219,25 +1349,23 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                 placeholder="Select provider"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
           </div>
 
-          <UFormGroup label="Notes" name="notes">
+          <UFormField label="Notes" name="notes">
             <UTextarea
               v-model="clientFormState.notes"
               rows="3"
               placeholder="Internal notes"
             />
-          </UFormGroup>
+          </UFormField>
         </div>
       </UForm>
     </template>
 
     <template #footer="{ close }">
       <div class="flex items-center justify-between gap-3">
-        <UButton variant="ghost" color="gray" @click="close">
-          Cancel
-        </UButton>
+        <UButton variant="ghost" color="gray" @click="close"> Cancel </UButton>
         <UButton
           color="amber"
           icon="i-heroicons-user-plus"
@@ -1268,15 +1396,15 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
       >
         <div class="space-y-6">
           <div class="space-y-4">
-            <UFormGroup label="Label" name="label" required>
+            <UFormField label="Label" name="label" required>
               <UInput
                 v-model="paymentMethodFormState.label"
                 placeholder="Primary Paystack"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Provider" name="provider">
+            <UFormField label="Provider" name="provider">
               <USelectMenu
                 v-model="paymentMethodFormState.provider"
                 :items="momoProviderOptions"
@@ -1284,33 +1412,35 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
                 placeholder="Select provider"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Account Number" name="accountNumber">
+            <UFormField label="Account Number" name="accountNumber">
               <UInput
                 v-model="paymentMethodFormState.accountNumber"
                 placeholder="233200000000"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Payable To" name="accountName">
+            <UFormField label="Payable To" name="accountName">
               <UInput
                 v-model="paymentMethodFormState.accountName"
-                placeholder="Business name"
+                placeholder="Business Name"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Instructions" name="instructions">
+            <UFormField label="Instructions" name="instructions">
               <UTextarea
                 v-model="paymentMethodFormState.instructions"
                 rows="4"
                 placeholder="Payment instructions"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <div class="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
+            <div
+              class="flex items-center justify-between p-3 bg-amber-50 rounded-xl"
+            >
               <div>
                 <p class="text-sm font-medium text-gray-900">Set as default</p>
                 <p class="text-xs text-gray-500">Use for new invoices</p>
@@ -1329,9 +1459,7 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
 
     <template #footer="{ close }">
       <div class="flex items-center justify-between gap-3">
-        <UButton variant="ghost" color="gray" @click="close">
-          Cancel
-        </UButton>
+        <UButton variant="ghost" color="gray" @click="close"> Cancel </UButton>
         <UButton
           color="amber"
           icon="i-heroicons-credit-card"

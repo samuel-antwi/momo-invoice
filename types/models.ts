@@ -135,6 +135,7 @@ export interface DashboardSummary {
   sentCount: number;
   paidCount: number;
   overdueCount: number;
+  unpaidCount: number;
   pendingCount: number;
   activeClients: number;
 }
