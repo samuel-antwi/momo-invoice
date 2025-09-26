@@ -45,6 +45,9 @@ const stats = computed(() => [
 
 const filteredInvoices = computed(() => {
   const term = searchTerm.value.trim().toLowerCase();
+  const statusFilter = activeStatus.value;
+  const now = new Date();
+
   return invoices.value.filter((invoice) => {
     const client = clients.value.find(
       (client) => client.id === invoice.clientId
@@ -57,10 +60,16 @@ const filteredInvoices = computed(() => {
         ].some((field) => field.includes(term))
       : true;
 
-    const matchesStatus =
-      activeStatus.value === "all"
-        ? true
-        : invoice.status === activeStatus.value;
+    const matchesStatus = (() => {
+      if (statusFilter === "all") return true;
+      if (statusFilter === "overdue") {
+        if (invoice.status === "paid") return false;
+        if (invoice.status === "overdue") return true;
+        if (!invoice.dueDate) return false;
+        return new Date(invoice.dueDate) < now;
+      }
+      return invoice.status === statusFilter;
+    })();
 
     return matchesTerm && matchesStatus;
   });

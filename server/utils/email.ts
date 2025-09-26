@@ -84,12 +84,14 @@ export async function sendReminderEmail(invoice: any, template: any, test = fals
         .invoice-row {
           display: flex;
           justify-content: space-between;
-          padding: 10px 0;
+          align-items: center;
+          padding: 12px 0;
           border-bottom: 1px solid #e5e7eb;
         }
         .invoice-row:last-child {
           border-bottom: none;
-          padding-top: 12px;
+          padding-top: 16px;
+          padding-bottom: 4px;
           font-size: 18px;
           font-weight: 600;
         }
@@ -176,12 +178,12 @@ export async function sendReminderEmail(invoice: any, template: any, test = fals
         <div class="content">
           <div class="greeting">Hello ${invoice.client?.fullName || 'Valued Customer'},</div>
 
-          <p>This is a friendly reminder that your invoice <strong>#${invoice.invoiceNumber}</strong> ${daysText}.</p>
+          <p style="margin: 16px 0;">This is a friendly reminder that your invoice <strong>${invoice.invoiceNumber}</strong> ${daysText}.</p>
 
           <div class="invoice-card">
             <div class="invoice-row">
               <span class="invoice-label">Invoice Number</span>
-              <span class="invoice-value">#${invoice.invoiceNumber}</span>
+              <span class="invoice-value">${invoice.invoiceNumber}</span>
             </div>
             <div class="invoice-row">
               <span class="invoice-label">Due Date</span>
@@ -193,13 +195,13 @@ export async function sendReminderEmail(invoice: any, template: any, test = fals
             </div>
             <div class="invoice-row">
               <span class="invoice-label">Status</span>
-              <span class="invoice-value" style="color: ${template.offsetDays > 0 ? '#dc2626' : '#ea580c'};">
+              <span class="invoice-value" style="color: ${template.offsetDays > 0 ? '#dc2626' : '#ea580c'}; font-weight: 600;">
                 ${template.offsetDays > 0 ? 'OVERDUE' : template.offsetDays === 0 ? 'DUE TODAY' : 'DUE SOON'}
               </span>
             </div>
             <div class="invoice-row">
               <span class="invoice-label">Amount Due</span>
-              <span class="amount">GH₵ ${invoice.totalAmount?.toFixed(2) || '0.00'}</span>
+              <span class="amount">GH₵ ${(parseFloat(invoice.total) || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
           </div>
 
@@ -244,7 +246,7 @@ export async function sendReminderEmail(invoice: any, template: any, test = fals
   const emailData = {
     from: `${fromName} <${fromEmail}>`,
     to: invoice.client.email,
-    subject: `${template.offsetDays > 0 ? '⚠️ OVERDUE: ' : ''}Payment Reminder - Invoice #${invoice.invoiceNumber}`,
+    subject: `${template.offsetDays > 0 ? '⚠️ OVERDUE: ' : ''}Payment Reminder - Invoice ${invoice.invoiceNumber}`,
     html: emailHtml,
     reply_to: invoice.business.email || undefined,
     tags: [
