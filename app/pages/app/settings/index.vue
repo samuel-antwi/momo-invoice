@@ -341,7 +341,7 @@ const handleSubaccountSubmit = async () => {
                       size="xl"
                       required
                       placeholder="Your Business Name"
-                      class="pl-11"
+                      class="pl-12 sm:pl-11 py-3.5 sm:py-3 text-base sm:text-sm"
                     />
                   </div>
                 </div>
@@ -365,7 +365,7 @@ const handleSubaccountSubmit = async () => {
                       type="email"
                       size="xl"
                       placeholder="business@example.com"
-                      class="pl-11"
+                      class="pl-12 sm:pl-11 py-3.5 sm:py-3 text-base sm:text-sm"
                     />
                   </div>
                 </div>
@@ -400,7 +400,7 @@ const handleSubaccountSubmit = async () => {
                       v-model="form.phone"
                       size="xl"
                       placeholder="+233 20 000 0000"
-                      class="pl-11"
+                      class="pl-12 sm:pl-11 py-3.5 sm:py-3 text-base sm:text-sm"
                     />
                   </div>
                 </div>
@@ -423,7 +423,7 @@ const handleSubaccountSubmit = async () => {
                       v-model="form.whatsappNumber"
                       size="xl"
                       placeholder="+233 20 000 0000"
-                      class="pl-11"
+                      class="pl-12 sm:pl-11 py-3.5 sm:py-3 text-base sm:text-sm"
                     />
                   </div>
                 </div>
@@ -457,7 +457,7 @@ const handleSubaccountSubmit = async () => {
                     v-model="form.address"
                     :rows="4"
                     placeholder="Near Accra Mall, East Legon&#10;GPS: GA-123-4567"
-                    class="pl-11 text-base py-3"
+                    class="pl-12 sm:pl-11 text-base sm:text-sm py-4 sm:py-3"
                   />
                 </div>
               </div>
@@ -535,6 +535,8 @@ const handleSubaccountSubmit = async () => {
                   :items="payoutCurrencyOptions"
                   value-key="value"
                   disabled
+                  size="xl"
+                  class="text-base sm:text-sm"
                 />
               </div>
               <div class="space-y-2">
@@ -550,6 +552,8 @@ const handleSubaccountSubmit = async () => {
                   :items="payoutTypeOptions"
                   value-key="value"
                   placeholder="Select payout channel"
+                  size="xl"
+                  class="text-base sm:text-sm"
                 />
               </div>
               <div class="space-y-2 md:col-span-2">
@@ -573,6 +577,8 @@ const handleSubaccountSubmit = async () => {
                   searchable
                   searchable-placeholder="Search bank"
                   by="value"
+                  size="xl"
+                  class="text-base sm:text-sm"
                 >
                   <template #label>
                     <span v-if="payoutForm.bankCode">{{
@@ -605,9 +611,10 @@ const handleSubaccountSubmit = async () => {
                 <UInput
                   :id="settlementAccountFieldId"
                   v-model="payoutForm.accountNumber"
-                  size="lg"
+                  size="xl"
                   placeholder="233200000000"
                   required
+                  class="py-3.5 sm:py-3 text-base sm:text-sm"
                 />
               </div>
               <div class="space-y-2 md:col-span-2">
@@ -620,9 +627,10 @@ const handleSubaccountSubmit = async () => {
                 <UInput
                   :id="settlementNameFieldId"
                   v-model="payoutForm.accountName"
-                  size="lg"
+                  size="xl"
                   placeholder="Success Nails"
                   required
+                  class="py-3.5 sm:py-3 text-base sm:text-sm"
                 />
               </div>
             </div>
