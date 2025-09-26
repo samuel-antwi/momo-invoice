@@ -63,6 +63,12 @@ const momoProviderOptions = [
   { label: "Other", value: "other" },
 ];
 
+const formGroupUi = {
+  label: "text-sm font-medium text-slate-700",
+  description: "text-xs text-slate-500",
+  wrapper: "space-y-2"
+};
+
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
   quantity: z
@@ -667,340 +673,590 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 sm:px-0">
-    <section class="card rounded-3xl p-4 sm:p-8">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="space-y-2">
-          <p class="text-sm font-bold uppercase tracking-wider text-blue-600">{{ headerTagline }}</p>
-          <h1 class="text-3xl font-bold text-gray-900">{{ headerTitle }}</h1>
-          <p class="text-sm text-gray-600">
-            {{
-              isEditMode
-                ? 'Update invoice details and resend the link if anything has changed.'
-                : 'Capture the essentials, send the link, and let Paystack handle the mobile money collection.'
-            }}
-          </p>
-        </div>
-        <div class="flex gap-3">
-          <UButton variant="outline" color="gray" :to="cancelLink">
-            Cancel
-          </UButton>
-          <UButton
-            color="primary"
-            icon="i-heroicons-check"
-            :loading="isSubmitting"
-            :disabled="!isFormReady"
-            type="submit"
-            :form="formId"
-          >
-            {{ primaryActionLabel }}
-          </UButton>
+  <div class="min-h-screen pb-20">
+    <!-- Mobile-First Header -->
+    <header class="sticky top-0 z-20 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 backdrop-blur-xl border-b border-amber-100/50">
+      <div class="px-4 py-3 sm:px-6 sm:py-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+              {{ headerTitle }}
+            </h1>
+            <p class="text-xs sm:text-sm text-gray-600 mt-0.5">Quick & easy invoice creation</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <UButton
+              variant="ghost"
+              color="gray"
+              size="sm"
+              :to="cancelLink"
+              class="hidden sm:flex"
+            >
+              Cancel
+            </UButton>
+            <UButton
+              color="amber"
+              size="sm"
+              icon="i-heroicons-check-circle"
+              :loading="isSubmitting"
+              :disabled="!isFormReady"
+              type="submit"
+              :form="formId"
+              class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 shadow-lg"
+            >
+              {{ primaryActionLabel }}
+            </UButton>
+          </div>
         </div>
       </div>
-    </section>
+    </header>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr),minmax(0,1fr)]">
-      <UCard class="rounded-3xl p-4 sm:p-6">
-        <UForm v-if="isFormReady" :id="formId" :schema="schema" :state="state" @submit="handleSubmit">
-          <div class="space-y-8">
-            <div class="grid gap-6 sm:grid-cols-2">
-              <div class="sm:col-span-2 flex flex-col gap-2">
-                <div class="flex items-center justify-between">
-                  <label :for="clientFieldId" class="text-sm font-medium text-gray-700">Client</label>
-                  <UButton
-                    variant="soft"
-                    color="primary"
-                    size="sm"
-                    icon="i-heroicons-user-plus"
-                    @click.prevent="openClientDrawer"
-                  >
-                    New client
-                  </UButton>
+    <!-- Mobile-optimized form -->
+    <div class="px-4 py-6 sm:px-6 max-w-7xl mx-auto">
+      <UForm v-if="isFormReady" :id="formId" :schema="schema" :state="state" @submit="handleSubmit">
+        <!-- Client Selection Section -->
+        <div class="mb-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-blue-100">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <UIcon name="i-heroicons-user-circle" class="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h2 class="font-semibold text-gray-900">Client Details</h2>
                 </div>
-                <UFormGroup label="Client" name="clientId" required :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
-                  <USelectMenu
-                    :id="clientFieldId"
-                    v-model="state.clientId"
-                    :items="clientOptions"
-                    value-key="value"
-                    placeholder="Select client"
-                    search-input
-                  />
-                </UFormGroup>
+                <UButton
+                  variant="soft"
+                  color="blue"
+                  size="xs"
+                  icon="i-heroicons-plus"
+                  @click.prevent="openClientDrawer"
+                >
+                  Add New
+                </UButton>
               </div>
-              <div class="flex flex-col gap-2">
-                <label :for="currencyFieldId" class="text-sm font-medium text-gray-700">Currency</label>
-                <UFormGroup label="Currency" name="currency" :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
-                  <UInput
-                    :id="currencyFieldId"
-                    v-model="state.currency"
-                    maxlength="3"
-                    placeholder="GHS"
-                    class="uppercase"
-                  />
-                </UFormGroup>
+            </div>
+            <div class="p-4">
+              <UFormGroup
+                label="Select Client"
+                name="clientId"
+                required
+                :ui="formGroupUi"
+              >
+                <USelectMenu
+                  :id="clientFieldId"
+                  v-model="state.clientId"
+                  :items="clientOptions"
+                  value-key="value"
+                  placeholder="Choose a client..."
+                  search-input
+                  size="lg"
+                  :ui="{
+                    wrapper: 'relative',
+                    base: 'relative block w-full disabled:cursor-not-allowed disabled:opacity-75 focus:outline-none border border-gray-200 rounded-xl',
+                    placeholder: 'text-gray-500',
+                  }"
+                >
+                  <template #option="{ option }">
+                    <div>
+                      <p class="font-medium">{{ option.label }}</p>
+                      <p v-if="option.description" class="text-xs text-gray-500">{{ option.description }}</p>
+                    </div>
+                  </template>
+                </USelectMenu>
+              </UFormGroup>
+
+              <!-- Selected Client Preview -->
+              <div v-if="selectedClient" class="mt-3 p-3 bg-blue-50 rounded-xl">
+                <p class="text-sm font-medium text-blue-900">{{ selectedClient.fullName }}</p>
+                <p v-if="selectedClient.phone" class="text-xs text-blue-700 mt-0.5">📱 {{ selectedClient.phone }}</p>
+                <p v-if="selectedClient.email" class="text-xs text-blue-700">✉️ {{ selectedClient.email }}</p>
               </div>
-              <div class="flex flex-col gap-2">
-                <label :for="issueDateFieldId" class="text-sm font-medium text-gray-700">Issue date</label>
-                <UFormGroup label="Issue date" name="issueDate" required :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
+            </div>
+          </div>
+        </div>
+
+        <!-- Invoice Details Section -->
+        <div class="mb-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3 border-b border-purple-100">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <UIcon name="i-heroicons-document-text" class="w-5 h-5 text-purple-600" />
+                </div>
+                <h2 class="font-semibold text-gray-900">Invoice Information</h2>
+              </div>
+            </div>
+            <div class="p-4 space-y-5">
+              <div class="grid grid-cols-2 gap-4">
+                <UFormGroup
+                  label="Issue Date"
+                  name="issueDate"
+                  required
+                  :ui="formGroupUi"
+                >
                   <UInput
                     :id="issueDateFieldId"
                     v-model="state.issueDate"
                     type="date"
+                    size="lg"
+                    :ui="{
+                      base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500',
+                    }"
                   />
                 </UFormGroup>
-              </div>
-              <div class="flex flex-col gap-2">
-                <label :for="dueDateFieldId" class="text-sm font-medium text-gray-700">Due date</label>
-                <UFormGroup label="Due date" name="dueDate" :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
+                <UFormGroup
+                  label="Due Date"
+                  name="dueDate"
+                  :ui="formGroupUi"
+                >
                   <UInput
                     :id="dueDateFieldId"
                     v-model="state.dueDate"
                     type="date"
+                    size="lg"
+                    :ui="{
+                      base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500',
+                    }"
                   />
                 </UFormGroup>
               </div>
-              <div class="sm:col-span-2 flex flex-col gap-2">
-                <div class="flex items-center justify-between">
-                  <label :for="paymentMethodFieldId" class="text-sm font-medium text-gray-700">Payment method</label>
-                  <UButton
-                    variant="soft"
-                    color="primary"
-                    size="sm"
-                    icon="i-heroicons-plus"
-                    @click.prevent="openPaymentMethodDrawer"
-                  >
-                    New method
-                  </UButton>
-                </div>
-                <UFormGroup
-                  label="Payment method"
-                  name="paymentMethodId"
-                  :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
-                >
-                  <USelectMenu
-                    :id="paymentMethodFieldId"
-                    v-model="state.paymentMethodId"
-                    :items="paymentMethodOptions"
-                    value-key="value"
-                    placeholder="Select payment method"
-                    search-input
-                  />
-                </UFormGroup>
-                <p v-if="selectedPaymentMethod" class="text-xs text-gray-500">
-                  {{ [selectedPaymentMethod.accountName, selectedPaymentMethod.accountNumber].filter(Boolean).join(" • ") }}
-                </p>
-              </div>
-            </div>
 
-            <div class="space-y-4">
+              <UFormGroup
+                label="Currency"
+                name="currency"
+                :ui="formGroupUi"
+              >
+                <UInput
+                  :id="currencyFieldId"
+                  v-model="state.currency"
+                  maxlength="3"
+                  placeholder="GHS"
+                  class="uppercase"
+                  size="lg"
+                  :ui="{
+                    base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500',
+                  }"
+                />
+              </UFormGroup>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line Items Section -->
+        <div class="mb-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3 border-b border-emerald-100">
               <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-900">Line items</h2>
-                <UButton icon="i-heroicons-plus" variant="soft" color="primary" size="sm" @click.prevent="addLineItem">
-                  Add item
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <UIcon name="i-heroicons-shopping-cart" class="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <h2 class="font-semibold text-gray-900">Items</h2>
+                </div>
+                <UButton
+                  variant="soft"
+                  color="emerald"
+                  size="xs"
+                  icon="i-heroicons-plus"
+                  @click.prevent="addLineItem"
+                >
+                  Add Item
                 </UButton>
               </div>
-              <div class="space-y-6">
-                <div
-                  v-for="(item, index) in state.lineItems"
-                  :key="index"
-                  class="rounded-2xl border border-gray-100 p-4 sm:p-5"
-                >
-                  <div class="flex items-start justify-between gap-3">
-                    <h3 class="text-base font-semibold text-gray-900">Item {{ index + 1 }}</h3>
-                    <UButton
-                      v-if="state.lineItems.length > 1"
-                      icon="i-heroicons-trash"
-                      color="red"
-                      variant="ghost"
-                      size="sm"
-                      @click.prevent="removeLineItem(index)"
+            </div>
+            <div class="p-4 space-y-4">
+              <div
+                v-for="(item, index) in state.lineItems"
+                :key="index"
+                class="relative bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-4 border border-gray-200"
+              >
+                <!-- Item Header -->
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-sm font-semibold text-gray-700 bg-white px-2 py-1 rounded-lg">
+                    Item {{ index + 1 }}
+                  </span>
+                  <UButton
+                    v-if="state.lineItems.length > 1"
+                    icon="i-heroicons-x-mark"
+                    color="red"
+                    variant="ghost"
+                    size="xs"
+                    @click.prevent="removeLineItem(index)"
+                    class="hover:bg-red-50"
+                  />
+                </div>
+
+                <!-- Item Fields -->
+                <div class="space-y-4">
+                  <UFormGroup
+                    label="Description"
+                    :name="`lineItems.${index}.description`"
+                    required
+                    :ui="formGroupUi"
+                  >
+                    <UInput
+                      :id="lineItemFieldId(index, 'description')"
+                      v-model="item.description"
+                      placeholder="e.g., Website Design"
+                      size="lg"
+                    />
+                  </UFormGroup>
+
+                  <div class="grid grid-cols-2 gap-4">
+                    <UFormGroup
+                      label="Quantity"
+                      :name="`lineItems.${index}.quantity`"
+                      required
+                      :ui="formGroupUi"
                     >
-                      Remove
-                    </UButton>
+                      <UInput
+                        :id="lineItemFieldId(index, 'quantity')"
+                        v-model="item.quantity"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        size="lg"
+                      />
+                    </UFormGroup>
+
+                    <UFormGroup
+                      label="Unit Price"
+                      :name="`lineItems.${index}.unitPrice`"
+                      required
+                      :ui="formGroupUi"
+                    >
+                      <UInput
+                        :id="lineItemFieldId(index, 'unitPrice')"
+                        v-model="item.unitPrice"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        size="lg"
+                      />
+                    </UFormGroup>
                   </div>
-                  <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div class="sm:col-span-2 flex flex-col gap-2">
-                      <label :for="lineItemFieldId(index, 'description')" class="text-sm font-medium text-gray-700">
-                        Description
-                      </label>
-                      <UFormGroup
-                        :label="'Description'"
-                        :name="`lineItems.${index}.description`"
-                        required
-                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
-                      >
-                        <UInput
-                          :id="lineItemFieldId(index, 'description')"
-                          v-model="item.description"
-                          placeholder="e.g., Bridal package"
-                        />
-                      </UFormGroup>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <label :for="lineItemFieldId(index, 'quantity')" class="text-sm font-medium text-gray-700">
-                        Quantity
-                      </label>
-                      <UFormGroup
-                        :label="'Quantity'"
-                        :name="`lineItems.${index}.quantity`"
-                        required
-                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
-                      >
-                        <UInput
-                          :id="lineItemFieldId(index, 'quantity')"
-                          v-model="item.quantity"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                        />
-                      </UFormGroup>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <label :for="lineItemFieldId(index, 'unitPrice')" class="text-sm font-medium text-gray-700">
-                        Unit price
-                      </label>
-                      <UFormGroup
-                        :label="'Unit price'"
-                        :name="`lineItems.${index}.unitPrice`"
-                        required
-                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
-                      >
-                        <UInput
-                          :id="lineItemFieldId(index, 'unitPrice')"
-                          v-model="item.unitPrice"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                        />
-                      </UFormGroup>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <label :for="lineItemFieldId(index, 'taxRate')" class="text-sm font-medium text-gray-700">
-                        Tax (%)
-                      </label>
-                      <UFormGroup
-                        :label="'Tax (%)'"
-                        :name="`lineItems.${index}.taxRate`"
-                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
-                      >
-                        <UInput
-                          :id="lineItemFieldId(index, 'taxRate')"
-                          v-model="item.taxRate"
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.1"
-                          placeholder="0"
-                        />
-                      </UFormGroup>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                      <label :for="lineItemFieldId(index, 'discount')" class="text-sm font-medium text-gray-700">
-                        Discount ({{ activeCurrency }})
-                      </label>
-                      <UFormGroup
-                        :label="`Discount (${activeCurrency})`"
-                        :name="`lineItems.${index}.discount`"
-                        :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
-                      >
-                        <UInput
-                          :id="lineItemFieldId(index, 'discount')"
-                          v-model="item.discount"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="0"
-                        />
-                      </UFormGroup>
-                    </div>
+
+                  <div class="grid grid-cols-2 gap-4">
+                    <UFormGroup
+                      label="Tax (%)"
+                      :name="`lineItems.${index}.taxRate`"
+                      :ui="formGroupUi"
+                    >
+                      <UInput
+                        :id="lineItemFieldId(index, 'taxRate')"
+                        v-model="item.taxRate"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="0"
+                        size="lg"
+                      />
+                    </UFormGroup>
+
+                    <UFormGroup
+                      :label="`Discount (${activeCurrency})`"
+                      :name="`lineItems.${index}.discount`"
+                      :ui="formGroupUi"
+                    >
+                      <UInput
+                        :id="lineItemFieldId(index, 'discount')"
+                        v-model="item.discount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0"
+                        size="lg"
+                      />
+                    </UFormGroup>
+                  </div>
+
+                  <!-- Line Total Preview -->
+                  <div class="mt-2 p-2 bg-emerald-50 rounded-lg text-center">
+                    <p class="text-xs text-emerald-600">Line Total</p>
+                    <p class="text-lg font-bold text-emerald-700">
+                      {{ formatCurrency((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0), activeCurrency) }}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div class="grid gap-6 sm:grid-cols-2">
-              <div class="flex flex-col gap-2">
-                <label :for="payableToFieldId" class="text-sm font-medium text-gray-700">Payable to</label>
-                <UFormGroup label="Payable to" name="payableTo" :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
-                  <UInput :id="payableToFieldId" v-model="state.payableTo" placeholder="Business or payout account name" />
-                </UFormGroup>
-              </div>
-              <div class="sm:col-span-2 flex flex-col gap-2">
-                <label :for="paymentInstructionsFieldId" class="text-sm font-medium text-gray-700">Payment instructions</label>
-                <UFormGroup
-                  label="Payment instructions"
-                  name="paymentInstructions"
-                  :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }"
+        <!-- Payment Details Section -->
+        <div class="mb-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-50 to-yellow-50 px-4 py-3 border-b border-amber-100">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                    <UIcon name="i-heroicons-credit-card" class="w-5 h-5 text-amber-600" />
+                  </div>
+                  <h2 class="font-semibold text-gray-900">Payment</h2>
+                </div>
+                <UButton
+                  variant="soft"
+                  color="amber"
+                  size="xs"
+                  icon="i-heroicons-plus"
+                  @click.prevent="openPaymentMethodDrawer"
                 >
-                  <UTextarea
-                    :id="paymentInstructionsFieldId"
-                    v-model="state.paymentInstructions"
-                    placeholder="Add any additional payout notes or bank backup details"
-                    rows="3"
-                  />
-                </UFormGroup>
-              </div>
-              <div class="sm:col-span-2 flex flex-col gap-2">
-                <label :for="notesFieldId" class="text-sm font-medium text-gray-700">Internal notes</label>
-                <UFormGroup label="Internal notes" name="notes" :ui="{ label: 'sr-only', wrapper: 'flex flex-col gap-2' }">
-                  <UTextarea
-                    :id="notesFieldId"
-                    v-model="state.notes"
-                    placeholder="Optional notes for the client"
-                    rows="3"
-                  />
-                </UFormGroup>
+                  New Method
+                </UButton>
               </div>
             </div>
-          </div>
-        </UForm>
-        <div v-else class="py-12 text-center text-sm text-gray-500">
-          Loading invoice details…
-        </div>
-      </UCard>
+            <div class="p-4 space-y-5">
+              <UFormGroup
+                label="Payment Method"
+                name="paymentMethodId"
+                :ui="formGroupUi"
+              >
+                <USelectMenu
+                  :id="paymentMethodFieldId"
+                  v-model="state.paymentMethodId"
+                  :items="paymentMethodOptions"
+                  value-key="value"
+                  placeholder="Select payment method"
+                  search-input
+                  size="lg"
+                  :ui="{
+                    wrapper: 'relative',
+                    base: 'relative block w-full disabled:cursor-not-allowed disabled:opacity-75 focus:outline-none border border-gray-200 rounded-xl',
+                  }"
+                >
+                  <template #option="{ option }">
+                    <div>
+                      <p class="font-medium">{{ option.label }}</p>
+                      <p v-if="option.description" class="text-xs text-gray-500">{{ option.description }}</p>
+                    </div>
+                  </template>
+                </USelectMenu>
+              </UFormGroup>
 
-      <UCard class="rounded-3xl p-4 sm:p-6">
-        <div class="space-y-6">
-          <div>
-            <h2 class="text-lg font-semibold text-gray-900">Invoice summary</h2>
-            <p class="text-sm text-gray-600">Totals update automatically as you add line items.</p>
+              <UFormGroup
+                label="Payable To"
+                name="payableTo"
+                :ui="formGroupUi"
+              >
+                <UInput
+                  :id="payableToFieldId"
+                  v-model="state.payableTo"
+                  placeholder="Business or account name"
+                  size="lg"
+                  :ui="{
+                    base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500',
+                  }"
+                />
+              </UFormGroup>
+
+              <UFormGroup
+                label="Payment Instructions"
+                name="paymentInstructions"
+                :ui="formGroupUi"
+              >
+                <UTextarea
+                  :id="paymentInstructionsFieldId"
+                  v-model="state.paymentInstructions"
+                  placeholder="How should the client pay?"
+                  rows="3"
+                  :ui="{
+                    base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500',
+                  }"
+                />
+              </UFormGroup>
+            </div>
           </div>
-          <div class="space-y-3 rounded-2xl bg-gray-50 p-4">
-            <div class="flex items-center justify-between text-sm text-gray-600">
+        </div>
+
+        <!-- Notes Section -->
+        <div class="mb-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-slate-50 to-gray-50 px-4 py-3 border-b border-gray-200">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <UIcon name="i-heroicons-chat-bubble-left-right" class="w-5 h-5 text-gray-600" />
+                </div>
+                <h2 class="font-semibold text-gray-900">Additional Notes</h2>
+              </div>
+            </div>
+            <div class="p-4">
+              <UFormGroup
+                label="Notes for Client"
+                name="notes"
+                :ui="formGroupUi"
+              >
+                <UTextarea
+                  :id="notesFieldId"
+                  v-model="state.notes"
+                  placeholder="Any message for your client?"
+                  rows="3"
+                  :ui="{
+                    base: 'border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-500',
+                  }"
+                />
+              </UFormGroup>
+            </div>
+          </div>
+        </div>
+
+        <!-- Invoice Summary - Sticky on Mobile -->
+        <div class="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg rounded-t-2xl p-4 -mx-4 sm:relative sm:bottom-auto sm:shadow-none sm:border sm:rounded-2xl sm:mx-0">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold text-gray-900">Summary</h3>
+            <span class="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+              {{ formatCurrency(totals.total, activeCurrency) }}
+            </span>
+          </div>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between text-gray-600">
               <span>Subtotal</span>
-              <span class="font-medium text-gray-900">{{ formatCurrency(totals.subtotal, activeCurrency) }}</span>
+              <span class="font-medium">{{ formatCurrency(totals.subtotal, activeCurrency) }}</span>
             </div>
-            <div class="flex items-center justify-between text-sm text-gray-600">
+            <div v-if="totals.taxTotal > 0" class="flex justify-between text-gray-600">
               <span>Tax</span>
-              <span class="font-medium text-gray-900">{{ formatCurrency(totals.taxTotal, activeCurrency) }}</span>
+              <span class="font-medium">{{ formatCurrency(totals.taxTotal, activeCurrency) }}</span>
             </div>
-            <div class="flex items-center justify-between text-sm text-gray-600">
-              <span>Discounts</span>
-              <span class="font-medium text-gray-900">{{ formatCurrency(totals.discountTotal, activeCurrency) }}</span>
-            </div>
-            <div class="flex items-center justify-between border-t border-gray-200 pt-3 text-base font-semibold text-gray-900">
-              <span>Total due</span>
-              <span>{{ formatCurrency(totals.total, activeCurrency) }}</span>
+            <div v-if="totals.discountTotal > 0" class="flex justify-between text-gray-600">
+              <span>Discount</span>
+              <span class="font-medium text-emerald-600">-{{ formatCurrency(totals.discountTotal, activeCurrency) }}</span>
             </div>
           </div>
 
-          <div v-if="selectedClient" class="space-y-2 rounded-2xl border border-gray-100 p-4">
-            <h3 class="text-sm font-semibold text-gray-900">Client</h3>
-            <p class="text-sm text-gray-700">{{ selectedClient.fullName }}</p>
-            <p v-if="selectedClient.businessName" class="text-sm text-gray-500">{{ selectedClient.businessName }}</p>
-            <p v-if="selectedClient.phone" class="text-sm text-gray-500">{{ selectedClient.phone }}</p>
-            <p v-if="selectedClient.email" class="text-sm text-gray-500">{{ selectedClient.email }}</p>
+          <!-- Mobile Action Buttons -->
+          <div class="mt-4 grid grid-cols-2 gap-2 sm:hidden">
+            <UButton
+              variant="outline"
+              color="gray"
+              :to="cancelLink"
+              block
+            >
+              Cancel
+            </UButton>
+            <UButton
+              color="amber"
+              icon="i-heroicons-check-circle"
+              :loading="isSubmitting"
+              :disabled="!isFormReady"
+              type="submit"
+              :form="formId"
+              block
+              class="bg-gradient-to-r from-amber-500 to-orange-600"
+            >
+              Save
+            </UButton>
           </div>
         </div>
-      </UCard>
+      </UForm>
+
+      <div v-else class="flex items-center justify-center py-12">
+        <div class="text-center">
+          <div class="w-12 h-12 rounded-full bg-amber-100 animate-pulse mx-auto mb-3"></div>
+          <p class="text-sm text-gray-500">Loading invoice details...</p>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- Client Drawer -->
+  <USlideover
+    v-model:open="isClientDrawerOpen"
+    title="Add New Client"
+    description="Quick client creation without leaving the invoice."
+    :overlay="true"
+  >
+    <template #body>
+      <UForm :id="clientFormId" :schema="clientSchema" :state="clientFormState" @submit="handleClientSubmit">
+        <div class="space-y-4">
+          <UFormGroup label="Full Name" name="fullName" required>
+            <UInput
+              v-model="clientFormState.fullName"
+              placeholder="Ama Boateng"
+              size="lg"
+            />
+          </UFormGroup>
+
+          <UFormGroup label="Business Name" name="businessName">
+            <UInput
+              v-model="clientFormState.businessName"
+              placeholder="Ama's Boutique"
+              size="lg"
+            />
+          </UFormGroup>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <UFormGroup label="Email" name="email">
+              <UInput
+                v-model="clientFormState.email"
+                type="email"
+                placeholder="ama@example.com"
+                size="lg"
+              />
+            </UFormGroup>
+
+            <UFormGroup label="Phone" name="phone">
+              <UInput
+                v-model="clientFormState.phone"
+                placeholder="+233200000000"
+                size="lg"
+              />
+            </UFormGroup>
+
+            <UFormGroup label="WhatsApp" name="whatsappNumber">
+              <UInput
+                v-model="clientFormState.whatsappNumber"
+                placeholder="233200000000"
+                size="lg"
+              />
+            </UFormGroup>
+
+            <UFormGroup label="MoMo Provider" name="momoProvider" required>
+              <USelectMenu
+                v-model="clientFormState.momoProvider"
+                :items="momoProviderOptions"
+                value-key="value"
+                placeholder="Select provider"
+                size="lg"
+              />
+            </UFormGroup>
+          </div>
+
+          <UFormGroup label="Notes" name="notes">
+            <UTextarea
+              v-model="clientFormState.notes"
+              rows="3"
+              placeholder="Internal notes"
+            />
+          </UFormGroup>
+        </div>
+      </UForm>
+    </template>
+
+    <template #footer="{ close }">
+      <div class="flex items-center justify-between gap-3">
+        <UButton variant="ghost" color="gray" @click="close">
+          Cancel
+        </UButton>
+        <UButton
+          color="amber"
+          icon="i-heroicons-user-plus"
+          :loading="isCreatingClient"
+          type="submit"
+          :form="clientFormId"
+          class="bg-gradient-to-r from-amber-500 to-orange-600"
+        >
+          Save Client
+        </UButton>
+      </div>
+    </template>
+  </USlideover>
+
+  <!-- Payment Method Drawer -->
   <USlideover
     v-model:open="isPaymentMethodDrawerOpen"
-    title="Add payment method"
-    description="Store reusable payout notes or bank details for faster invoicing."
+    title="Add Payment Method"
+    description="Save reusable payment details."
     :overlay="true"
   >
     <template #body>
@@ -1010,161 +1266,93 @@ const handlePaymentMethodSubmit = async (event: FormSubmitEvent<PaymentMethodFor
         :state="paymentMethodFormState"
         @submit="handlePaymentMethodSubmit"
       >
-        <div class="space-y-7">
-          <section class="space-y-6 rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm">
-            <div class="space-y-2">
-              <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Method details</h3>
-              <p class="text-sm text-slate-600">Give this payout option a friendly name and specify how clients should pay you.</p>
-            </div>
-            <div class="grid gap-5 sm:grid-cols-2">
-              <UFormGroup
-                label="Label"
-                name="label"
-                required
-                description="Shown across invoices and reminders"
-                :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
-              >
-                <UInput v-model="paymentMethodFormState.label" placeholder="Primary Paystack" />
-              </UFormGroup>
-              <UFormGroup
-                label="Provider"
-                name="provider"
-                description="Pick the channel your client sees"
-                :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
-              >
-                <USelectMenu
-                  v-model="paymentMethodFormState.provider"
-                  :items="momoProviderOptions"
-                  value-key="value"
-                  placeholder="Select provider"
-                  search-input
-                />
-              </UFormGroup>
-              <UFormGroup
-                label="Account number"
-                name="accountNumber"
-                description="Phone, bank number or Paystack reference"
-                class="sm:col-span-2"
-                :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
-              >
-                <UInput v-model="paymentMethodFormState.accountNumber" placeholder="233200000000" />
-              </UFormGroup>
-              <UFormGroup
-                label="Payable to"
-                name="accountName"
-                description="Recipient name your client should use"
-                class="sm:col-span-2"
-                :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
-              >
-                <UInput v-model="paymentMethodFormState.accountName" placeholder="Business or account name" />
-              </UFormGroup>
-            </div>
-          </section>
+        <div class="space-y-6">
+          <div class="space-y-4">
+            <UFormGroup label="Label" name="label" required>
+              <UInput
+                v-model="paymentMethodFormState.label"
+                placeholder="Primary Paystack"
+                size="lg"
+              />
+            </UFormGroup>
 
-          <section class="space-y-6 rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm">
-            <div class="space-y-2">
-              <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Instructions & defaults</h3>
-              <p class="text-sm text-slate-600">Add any payout notes and choose whether future invoices use this automatically.</p>
-            </div>
-            <UFormGroup
-              label="Instructions"
-              name="instructions"
-              description="Optional guidance shown on invoices"
-              :ui="{ description: 'text-xs text-slate-500', label: 'text-sm font-medium text-slate-700', wrapper: 'space-y-2' }"
-            >
+            <UFormGroup label="Provider" name="provider">
+              <USelectMenu
+                v-model="paymentMethodFormState.provider"
+                :items="momoProviderOptions"
+                value-key="value"
+                placeholder="Select provider"
+                size="lg"
+              />
+            </UFormGroup>
+
+            <UFormGroup label="Account Number" name="accountNumber">
+              <UInput
+                v-model="paymentMethodFormState.accountNumber"
+                placeholder="233200000000"
+                size="lg"
+              />
+            </UFormGroup>
+
+            <UFormGroup label="Payable To" name="accountName">
+              <UInput
+                v-model="paymentMethodFormState.accountName"
+                placeholder="Business name"
+                size="lg"
+              />
+            </UFormGroup>
+
+            <UFormGroup label="Instructions" name="instructions">
               <UTextarea
                 v-model="paymentMethodFormState.instructions"
                 rows="4"
-                class="min-h-[120px]"
-                placeholder="Optional instructions, e.g. reference or bank branch"
+                placeholder="Payment instructions"
               />
             </UFormGroup>
-            <div class="flex flex-wrap items-center gap-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-4">
-              <div class="space-y-1">
-                <p class="text-sm font-semibold text-emerald-700">Set as default</p>
-                <p class="text-xs text-emerald-600">New invoices will auto-fill with this method until you choose another.</p>
+
+            <div class="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
+              <div>
+                <p class="text-sm font-medium text-gray-900">Set as default</p>
+                <p class="text-xs text-gray-500">Use for new invoices</p>
               </div>
-              <UToggle v-model="paymentMethodFormState.isDefault" class="ml-auto" />
+              <USwitch
+                v-model="paymentMethodFormState.isDefault"
+                :ui="{
+                  active: 'bg-amber-500',
+                }"
+              />
             </div>
-          </section>
+          </div>
         </div>
       </UForm>
     </template>
 
     <template #footer="{ close }">
-      <div class="flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
+      <div class="flex items-center justify-between gap-3">
         <UButton variant="ghost" color="gray" @click="close">
           Cancel
         </UButton>
         <UButton
-          color="primary"
+          color="amber"
           icon="i-heroicons-credit-card"
           :loading="isCreatingPaymentMethod"
           type="submit"
           :form="paymentMethodFormId"
+          class="bg-gradient-to-r from-amber-500 to-orange-600"
         >
-          Save method
+          Save Method
         </UButton>
       </div>
     </template>
   </USlideover>
-
-  <USlideover
-    v-model:open="isClientDrawerOpen"
-    title="Add client"
-    description="Save a new client without leaving this invoice."
-    :overlay="true"
-  >
-    <template #body>
-      <UForm :id="clientFormId" :schema="clientSchema" :state="clientFormState" @submit="handleClientSubmit">
-        <div class="space-y-4">
-          <UFormGroup label="Full name" name="fullName" required>
-            <UInput v-model="clientFormState.fullName" placeholder="Ama Boateng" />
-          </UFormGroup>
-          <UFormGroup label="Business name" name="businessName">
-            <UInput v-model="clientFormState.businessName" placeholder="Ama's Boutique" />
-          </UFormGroup>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <UFormGroup label="Email" name="email">
-              <UInput v-model="clientFormState.email" type="email" placeholder="ama@example.com" />
-            </UFormGroup>
-            <UFormGroup label="Phone" name="phone">
-              <UInput v-model="clientFormState.phone" placeholder="+233200000000" />
-            </UFormGroup>
-            <UFormGroup label="WhatsApp number" name="whatsappNumber">
-              <UInput v-model="clientFormState.whatsappNumber" placeholder="233200000000" />
-            </UFormGroup>
-          <UFormGroup label="Preferred mobile money network" name="momoProvider" required>
-              <USelectMenu
-                v-model="clientFormState.momoProvider"
-                :items="momoProviderOptions"
-                value-key="value"
-                placeholder="Select provider"
-              />
-            </UFormGroup>
-          </div>
-          <UFormGroup label="Notes" name="notes">
-            <UTextarea v-model="clientFormState.notes" rows="3" placeholder="Internal notes or preferences" />
-          </UFormGroup>
-        </div>
-      </UForm>
-    </template>
-
-    <template #footer="{ close }">
-      <div class="flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
-        <UButton variant="ghost" color="gray" @click="close">
-          Cancel
-        </UButton>
-        <UButton
-          color="primary"
-          icon="i-heroicons-user-plus"
-          :loading="isCreatingClient"
-          type="submit"
-          :form="clientFormId"
-        >
-          Save client
-        </UButton>
-      </div>
-    </template>
-</USlideover>
 </template>
+
+<style scoped>
+/* Add smooth transitions and mobile optimizations */
+@media (max-width: 640px) {
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    padding: 8px;
+    cursor: pointer;
+  }
+}
+</style>
