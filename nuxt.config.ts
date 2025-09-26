@@ -11,6 +11,9 @@ export default defineNuxtConfig({
       secretKey: process.env.PAYSTACK_SECRET_KEY,
       webhookSecret: process.env.PAYSTACK_WEBHOOK_SECRET,
     },
+    resendApiKey: process.env.RESEND_API_KEY,
+    emailFromAddress: process.env.EMAIL_FROM_ADDRESS || "info@kaygia.com",
+    emailFromName: process.env.EMAIL_FROM_NAME || "Momo Invoice",
     // Public environment variables (exposed to client)
     public: {
       appUrl: process.env.APP_URL || "http://localhost:3000",
